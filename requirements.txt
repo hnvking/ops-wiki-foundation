@@ -1,0 +1,4 @@
+# ops-wiki-foundation dependencies
+# Minimal — only what the scripts need.
+
+PyYAML>=6.0

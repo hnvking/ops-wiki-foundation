@@ -1,0 +1,15 @@
+# Cline Rules for ops-wiki-foundation
+
+All rules and context are maintained in a single source of truth: AGENTS.md.
+Read and follow every instruction in AGENTS.md before generating or modifying code or documentation.
+
+Key points:
+- This is a Markdown-first operational wiki. All docs live in docs/ with YAML frontmatter.
+- Never include real PII, credentials, or secrets. Use fictional data in all examples.
+- Every doc must pass `python3 scripts/validate_docs.py` before committing.
+- Field values must conform to schemas/required-fields.yml (including field_constraints).
+- Use templates from templates/ when creating new pages.
+- Scripts require Python 3.9+ and use only PyYAML as a dependency.
+- When creating a new doc, set last_reviewed to today's date.
+- When editing an existing doc, update last_reviewed to today's date.
+- Use ATX-style headings, one blank line around blocks, end files with a trailing newline.

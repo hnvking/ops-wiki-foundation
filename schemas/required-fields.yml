@@ -1,0 +1,135 @@
+# schemas/required-fields.yml
+#
+# Defines the required YAML frontmatter fields for each document type.
+# Used by scripts/validate_docs.py to check that every page has the
+# minimum metadata needed for consistency and future AI/RAG indexing.
+#
+# "type" must match the frontmatter "type" value in each Markdown file.
+# "required" lists the field names that must be present (non-empty).
+# "optional" lists recommended but not enforced fields.
+# "field_constraints" defines allowed values and formats for specific fields.
+#   - type: enum     — value must be one of the listed values
+#   - type: date     — value must match YYYY-MM-DD format
+#   - type: list     — value must be a non-empty list
+
+# --- Shared constraints referenced by multiple types ---
+# (Repeated inline per type since YAML anchors add complexity for humans.)
+
+document_types:
+
+  service:
+    description: "IT service ownership and support documentation"
+    directory: "docs/services"
+    template: "templates/service-page.md"
+    required:
+      - title
+      - type
+      - status
+      - owner
+      - last_reviewed
+    optional:
+      - description
+      - tier
+      - sla
+      - escalation_contact
+      - supported_hours
+      - tags
+    field_constraints:
+      status:
+        type: enum
+        values: [active, deprecated, draft, needs-review]
+      last_reviewed:
+        type: date
+        format: "YYYY-MM-DD"
+      tier:
+        type: enum
+        values: [tier-1, tier-2, tier-3, unknown]
+
+  system:
+    description: "System or application technical documentation"
+    directory: "docs/systems"
+    template: "templates/system-application-page.md"
+    required:
+      - title
+      - type
+      - status
+      - owner
+      - last_reviewed
+    optional:
+      - description
+      - vendor
+      - hosting
+      - authentication
+      - dependencies
+      - tags
+    field_constraints:
+      status:
+        type: enum
+        values: [active, deprecated, draft, needs-review]
+      last_reviewed:
+        type: date
+        format: "YYYY-MM-DD"
+      hosting:
+        type: enum
+        values: [on-prem, cloud, hybrid, unknown]
+      authentication:
+        type: enum
+        values: [SSO, LDAP, local, none, unknown]
+
+  integration:
+    description: "Integration between two or more systems"
+    directory: "docs/integrations"
+    template: "templates/integration-page.md"
+    required:
+      - title
+      - type
+      - status
+      - owner
+      - last_reviewed
+      - systems
+    optional:
+      - description
+      - direction
+      - protocol
+      - tags
+    field_constraints:
+      status:
+        type: enum
+        values: [active, deprecated, draft, needs-review]
+      last_reviewed:
+        type: date
+        format: "YYYY-MM-DD"
+      systems:
+        type: list
+      direction:
+        type: enum
+        values: [one-way, two-way, unknown]
+      protocol:
+        type: enum
+        values: [API, SFTP, LDAP, SAML, SCIM, OAuth, webhook, unknown]
+
+  runbook:
+    description: "Incident response or operational runbook"
+    directory: "docs/runbooks"
+    template: "templates/incident-runbook.md"
+    required:
+      - title
+      - type
+      - status
+      - owner
+      - last_reviewed
+      - severity
+    optional:
+      - description
+      - related_services
+      - tags
+    field_constraints:
+      status:
+        type: enum
+        values: [active, deprecated, draft, needs-review]
+      last_reviewed:
+        type: date
+        format: "YYYY-MM-DD"
+      severity:
+        type: enum
+        values: [critical, high, medium, low, unknown]
