@@ -1,21 +1,21 @@
-# Services
+# 服务（Services）
 
-This directory contains IT service ownership pages. Each page documents a service the IT department provides, including ownership, SLAs, escalation paths, supported hours, and dependencies.
+此目录包含 IT 服务负责人页面。每页记录 IT 部门提供的一项服务，包括负责人、SLA、升级路径、支持时间和依赖。
 
-## Template
+## 模板
 
-Use [templates/service-page.md](../../templates/service-page.md) to create new service pages.
+使用 [templates/service-page.md](../../templates/service-page.md) 创建新的服务页面。
 
-## Required Frontmatter
+## 必填 frontmatter 字段
 
-- `title` -- Name of the service
-- `type` -- Must be `service`
-- `status` -- `active`, `deprecated`, `draft`, or `needs-review`
-- `owner` -- Team or role responsible
-- `last_reviewed` -- Date of last review (`YYYY-MM-DD`)
+- `title` — 服务名称
+- `type` — 必须为 `service`
+- `status` — `active`、`deprecated`、`draft` 或 `needs-review`
+- `owner` — 负责的团队或角色
+- `last_reviewed` — 最近评审日期（`YYYY-MM-DD`）
 
-See [schemas/required-fields.yml](../../schemas/required-fields.yml) for the full field list.
+完整字段列表见 [schemas/required-fields.yml](../../schemas/required-fields.yml)。
 
-## Examples
+## 示例
 
-- [helpdesk.md](helpdesk.md) -- IT Help Desk (fictional example)
+- 暂无。使用上方模板添加你的第一个服务页面。

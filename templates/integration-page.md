@@ -1,66 +1,66 @@
-<!-- Template: Integration Page
-     Replace all UPPERCASE_PLACEHOLDERS and "unknown" values with real data.
-     Delete this comment block when the page is complete. -->
+<!-- 模板：集成页面
+     将所有的占位符和 "unknown/未知" 值替换为真实数据。
+     页面完成时删除此注释块。 -->
 ---
-title: "INTEGRATION_NAME"
-type: integration
-status: draft                 # active | deprecated | draft | needs-review
-owner: "unknown"
-last_reviewed: "YYYY-MM-DD"
-description: "Brief description of this integration."
-systems:                      # list the systems involved
-  - "SYSTEM_A"
-  - "SYSTEM_B"
-direction: unknown            # one-way | two-way | unknown
+title: "集成名称"
+type: integration              # 文档类型（integration，不可修改）
+status: draft                 # active | deprecated | draft | needs-review（运行中|已弃用|草稿|待评审）
+owner: "未知"
+last_reviewed: "YYYY-MM-DD"   # 日期格式：年-月-日
+description: "集成的简要描述。"
+systems:                      # 列出涉及的系统
+  - "系统A"
+  - "系统B"
+direction: unknown            # one-way | two-way | unknown（单向|双向|未知）
 protocol: unknown             # API | SFTP | LDAP | SAML | SCIM | OAuth | webhook | unknown
 tags: []
 ---
 
-# INTEGRATION_NAME
+# 集成名称
 
-## Overview
+## 概述
 
-Describe what data or functionality flows between the systems and why.
+描述系统之间流动的数据或功能及其原因。
 
-## Systems Involved
+## 涉及的系统
 
-| System   | Role        | Direction |
-|----------|-------------|-----------|
-| SYSTEM_A | unknown     | unknown   |
-| SYSTEM_B | unknown     | unknown   |
+| 系统   | 角色   | 方向   |
+|-------|-------|-------|
+| 系统A | 未知   | 未知   |
+| 系统B | 未知   | 未知   |
 
-## Technical Details
+## 技术详情
 
-| Field          | Value             |
-|----------------|-------------------|
-| Protocol       | unknown           |
-| Frequency      | unknown           |
-| Auth method    | unknown           |
-| Error handling | unknown           |
+| 字段       | 值        |
+|-----------|-----------|
+| 协议       | 未知      |
+| 频率       | 未知      |
+| 认证方式   | 未知      |
+| 错误处理   | 未知      |
 
-## Data Flow
+## 数据流
 
-Describe what data moves, in which direction, and how often.
+描述什么数据在移动、方向如何、频率多高。
 
-## Owner / Support
+## 负责人与支持
 
-| Role              | Name / Team       |
-|-------------------|-------------------|
-| Integration owner | unknown           |
-| Vendor contact    | unknown           |
+| 角色         | 姓名/团队 |
+|-------------|-----------|
+| 集成负责人   | 未知      |
+| 厂商联系人   | 未知      |
 
-## Failure & Recovery
+## 故障与恢复
 
-- **What happens if it fails?** unknown
-- **How to detect failure:** unknown
-- **Recovery steps:** unknown
+- **如果失败会怎样:** 未知
+- **如何检测故障:** 未知
+- **恢复步骤:** 未知
 
-## Related Pages
+## 相关页面
 
-- Links to systems, services, or runbooks
+- 指向系统、服务或应急手册的链接
 
-## Change Log
+## 变更记录
 
-| Date       | Author  | Summary          |
-|------------|---------|------------------|
-| YYYY-MM-DD | unknown | Initial creation |
+| 日期       | 作者 | 摘要          |
+|-----------|------|--------------|
+| YYYY-MM-DD | 未知 | 初始创建 |

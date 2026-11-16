@@ -1,60 +1,60 @@
-<!-- Template: Service Page
-     Replace all UPPERCASE_PLACEHOLDERS and "unknown" values with real data.
-     Delete this comment block when the page is complete. -->
+<!-- 模板：服务页面
+     将所有的占位符和 "unknown/未知" 值替换为真实数据。
+     页面完成时删除此注释块。 -->
 ---
-title: "SERVICE_NAME"
-type: service
-status: draft                 # active | deprecated | draft | needs-review
-owner: "unknown"
-last_reviewed: "YYYY-MM-DD"
-description: "Brief description of this service."
-tier: unknown                 # tier-1 | tier-2 | tier-3 | unknown
-sla: unknown                  # e.g. "99.9% uptime" or "4-hour response"
-escalation_contact: "unknown"
-supported_hours: "unknown"    # e.g. "Mon-Fri 7am-5pm" or "24/7"
+title: "服务名称"
+type: service                 # 文档类型（service，不可修改）
+status: draft                 # active | deprecated | draft | needs-review（运行中|已弃用|草稿|待评审）
+owner: "未知"
+last_reviewed: "YYYY-MM-DD"   # 日期格式：年-月-日
+description: "服务的简要描述。"
+tier: unknown                 # tier-1 | tier-2 | tier-3 | unknown（一级|二级|三级|未知）
+sla: unknown                  # 如 "99.9% 可用性" 或 "4小时响应"
+escalation_contact: "未知"
+supported_hours: "未知"       # 如 "周一至周五 7-17点" 或 "7x24"
 tags: []
 ---
 
-# SERVICE_NAME
+# 服务名称
 
-## Overview
+## 概述
 
-Briefly describe what this service provides and who it serves.
+简要描述该服务提供什么、服务对象是谁。
 
-## Service Owner
+## 服务负责人
 
-| Role              | Name / Team       |
-|-------------------|-------------------|
-| Primary owner     | unknown           |
-| Backup contact    | unknown           |
-| Escalation path   | unknown           |
+| 角色         | 姓名/团队 |
+|-------------|-----------|
+| 首要负责人   | 未知      |
+| 备份联系人   | 未知      |
+| 升级路径     | 未知      |
 
-## SLA / Service Level Expectations
+## SLA / 服务水平期望
 
-- **Uptime target:** unknown
-- **Response time:** unknown
-- **Resolution time:** unknown
+- **可用性目标:** 未知
+- **响应时间:** 未知
+- **解决时间:** 未知
 
-## Supported Hours
+## 支持时间
 
-unknown
+未知
 
-## Users / Audience
+## 用户/受众
 
-Who uses this service? (e.g., all staff, students, specific departments)
+谁使用此服务？（例如：全体员工、学生、特定部门）
 
-## Dependencies
+## 依赖
 
-List any systems, integrations, or services this depends on.
+列出此服务依赖的任何系统、集成或服务。
 
-- None documented yet
+- 尚未记录
 
-## Related Pages
+## 相关页面
 
-- Links to runbooks, systems, or integrations
+- 指向应急手册、系统或集成的链接
 
-## Change Log
+## 变更记录
 
-| Date       | Author  | Summary          |
-|------------|---------|------------------|
-| YYYY-MM-DD | unknown | Initial creation |
+| 日期       | 作者 | 摘要          |
+|-----------|------|--------------|
+| YYYY-MM-DD | 未知 | 初始创建 |

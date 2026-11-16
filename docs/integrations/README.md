@@ -1,22 +1,22 @@
-# Integrations
+# 集成（Integrations）
 
-This directory contains integration documentation pages. Each page describes how two or more systems connect, what data flows between them, the protocol used, and failure/recovery procedures.
+此目录包含集成文档页面。每页描述两个或多个系统如何连接、系统间流动的数据、使用的协议以及故障/恢复流程。
 
-## Template
+## 模板
 
-Use [templates/integration-page.md](../../templates/integration-page.md) to create new integration pages.
+使用 [templates/integration-page.md](../../templates/integration-page.md) 创建新的集成页面。
 
-## Required Frontmatter
+## 必填 frontmatter 字段
 
-- `title` -- Name of the integration
-- `type` -- Must be `integration`
-- `status` -- `active`, `deprecated`, `draft`, or `needs-review`
-- `owner` -- Team or role responsible
-- `last_reviewed` -- Date of last review (`YYYY-MM-DD`)
-- `systems` -- List of systems involved
+- `title` — 集成名称
+- `type` — 必须为 `integration`
+- `status` — `active`、`deprecated`、`draft` 或 `needs-review`
+- `owner` — 负责的团队或角色
+- `last_reviewed` — 最近评审日期（`YYYY-MM-DD`）
+- `systems` — 涉及的系统列表
 
-See [schemas/required-fields.yml](../../schemas/required-fields.yml) for the full field list.
+完整字段列表见 [schemas/required-fields.yml](../../schemas/required-fields.yml)。
 
-## Examples
+## 示例
 
-- [sso-identity-provider.md](sso-identity-provider.md) -- SSO integration (fictional example)
+- 暂无。使用上方模板添加你的第一个集成页面。

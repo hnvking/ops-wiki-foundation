@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>运维知识库 Ops Wiki</title>
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="description" content="IT 运维知识库">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/vue.css">
+</head>
+<body>
+  <div id="app">请稍候，正在加载文档…</div>
+  <script>
+    window.$docsify = {
+      name: '运维知识库 Ops Wiki',
+      repo: 'https://github.com/decyphered/ops-wiki-foundation',
+      loadSidebar: true,
+      subMaxLevel: 3,
+      auto2top: true,
+      maxLevel: 3,
+      themeColor: '#2c3e50',
+      homepage: 'docsify/README.md'
+    };
+  </script>
+  <!-- 注意：search 插件内部会执行 $docsify.plugins=[].concat(...)，直接覆盖数组。
+       因此必须先加载它，再让自定义插件在其后追加，才能保留两者。 -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script>
+    // 插件：渲染前隐藏 Markdown 开头的 YAML frontmatter（--- 之间的部分）
+    (function () {
+      function stripFrontmatter(hook, vm) {
+        hook.beforeEach(function (markdown) {
+          var lines = String(markdown).split('\n');
+          if (lines.length && lines[0].replace(/^\uFEFF/, '').trim() === '---') {
+            for (var i = 1; i < lines.length; i++) {
+              if (lines[i].trim() === '---') {
+                return lines.slice(i + 1).join('\n').replace(/^\s+/, '');
+              }
+            }
+          }
+          return markdown;
+        });
+      }
+      window.$docsify.plugins = (window.$docsify.plugins || []).concat([stripFrontmatter]);
+    })();
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+</body>
+</html>

@@ -1,22 +1,22 @@
-# Runbooks
+# 应急手册（Runbooks）
 
-This directory contains incident response and operational runbooks. Each runbook documents how to detect, respond to, escalate, and resolve a specific type of incident.
+此目录包含事件响应和操作应急手册。每本手册记录如何检测、响应、升级并解决某一类特定事件。
 
-## Template
+## 模板
 
-Use [templates/incident-runbook.md](../../templates/incident-runbook.md) to create new runbooks.
+使用 [templates/incident-runbook.md](../../templates/incident-runbook.md) 创建新的应急手册。
 
-## Required Frontmatter
+## 必填 frontmatter 字段
 
-- `title` -- Name of the incident scenario
-- `type` -- Must be `runbook`
-- `status` -- `active`, `deprecated`, `draft`, or `needs-review`
-- `owner` -- Team or role responsible
-- `last_reviewed` -- Date of last review (`YYYY-MM-DD`)
-- `severity` -- `critical`, `high`, `medium`, `low`, or `unknown`
+- `title` — 事件场景名称
+- `type` — 必须为 `runbook`
+- `status` — `active`、`deprecated`、`draft` 或 `needs-review`
+- `owner` — 负责的团队或角色
+- `last_reviewed` — 最近评审日期（`YYYY-MM-DD`）
+- `severity` — `critical`、`high`、`medium`、`low` 或 `unknown`
 
-See [schemas/required-fields.yml](../../schemas/required-fields.yml) for the full field list.
+完整字段列表见 [schemas/required-fields.yml](../../schemas/required-fields.yml)。
 
-## Examples
+## 示例
 
-- [email-outage.md](email-outage.md) -- Email system outage response (fictional example)
+- 暂无。使用上方模板添加你的第一个应急手册。

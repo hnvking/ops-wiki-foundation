@@ -1,78 +1,78 @@
-<!-- Template: Incident Runbook
-     Replace all UPPERCASE_PLACEHOLDERS and "unknown" values with real data.
-     Delete this comment block when the page is complete. -->
+<!-- 模板：应急手册
+     将所有的占位符和 "unknown/未知" 值替换为真实数据。
+     页面完成时删除此注释块。 -->
 ---
-title: "INCIDENT_TITLE"
-type: runbook
-status: draft                 # active | deprecated | draft | needs-review
-owner: "unknown"
-last_reviewed: "YYYY-MM-DD"
-description: "Brief description of this incident scenario."
-severity: unknown             # critical | high | medium | low | unknown
+title: "事件标题"
+type: runbook                 # 文档类型（runbook，不可修改）
+status: draft                 # active | deprecated | draft | needs-review（运行中|已弃用|草稿|待评审）
+owner: "未知"
+last_reviewed: "YYYY-MM-DD"   # 日期格式：年-月-日
+description: "此事件场景的简要描述。"
+severity: unknown             # critical | high | medium | low | unknown（严重|高|中|低|未知）
 related_services: []
 tags: []
 ---
 
-# INCIDENT_TITLE
+# 事件标题
 
-## Summary
+## 摘要
 
-Briefly describe the incident scenario this runbook covers.
+简要描述此应急手册覆盖的事件场景。
 
-## Severity
+## 严重级别
 
-- **Level:** unknown
-- **Impact:** unknown
-- **Affected users:** unknown
+- **级别:** 未知
+- **影响:** 未知
+- **受影响用户:** 未知
 
-## Detection
+## 检测
 
-How is this incident detected? (monitoring alerts, user reports, etc.)
+如何检测此事件？（监控告警、用户报告等）
 
-- unknown
+- 未知
 
-## Immediate Response
+## 立即响应
 
-Step-by-step actions to take when this incident is detected:
+检测到此事件后要采取的逐步行动：
 
-1. Step one
-2. Step two
-3. Step three
+1. 第一步
+2. 第二步
+3. 第三步
 
-## Escalation Path
+## 升级路径
 
-| Level   | Contact         | Method          |
-|---------|-----------------|-----------------|
-| Level 1 | unknown         | unknown         |
-| Level 2 | unknown         | unknown         |
-| Level 3 | unknown         | unknown         |
+| 级别 | 联系人 | 方式 |
+|------|--------|------|
+| 一级 | 未知   | 未知 |
+| 二级 | 未知   | 未知 |
+| 三级 | 未知   | 未知 |
 
-## Communication
+## 沟通
 
-- **Internal notification:** unknown
-- **User-facing communication:** unknown
-- **Status page update:** unknown
+- **内部通知:** 未知
+- **面向用户的沟通:** 未知
+- **状态页更新:** 未知
 
-## Resolution Steps
+## 解决步骤
 
-Detailed steps to resolve the underlying issue:
+解决根本问题的详细步骤：
 
-1. Step one
-2. Step two
-3. Step three
+1. 第一步
+2. 第二步
+3. 第三步
 
-## Post-Incident
+## 事件后
 
-- [ ] Conduct post-incident review
-- [ ] Update this runbook with lessons learned
-- [ ] File follow-up tickets if needed
+- [ ] 进行事件后复盘
+- [ ] 用经验教训更新此手册
+- [ ] 如需，提交后续工单
 
-## Related Pages
+## 相关页面
 
-- Links to services, systems, or integrations
+- 指向服务、系统或集成的链接
 
-## Change Log
+## 变更记录
 
-| Date       | Author  | Summary          |
-|------------|---------|------------------|
-| YYYY-MM-DD | unknown | Initial creation |
+| 日期       | 作者 | 摘要          |
+|-----------|------|--------------|
+| YYYY-MM-DD | 未知 | 初始创建 |

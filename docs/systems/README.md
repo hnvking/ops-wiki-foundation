@@ -1,23 +1,21 @@
-# Systems
+# 系统（Systems）
 
-This directory contains system and application documentation pages. Each page describes a system's purpose, technical details, ownership, dependencies, integrations, and backup/recovery information.
+此目录包含系统和应用文档页面。每个页面描述系统的用途、技术详情、负责人、依赖、集成以及备份/恢复信息。
 
-## Template
+## 模板
 
-Use [templates/system-application-page.md](../../templates/system-application-page.md) to create new system pages.
+使用 [templates/system-application-page.md](../../templates/system-application-page.md) 创建新的系统页面。
 
-## Required Frontmatter
+## 必填 frontmatter 字段
 
-- `title` -- Name of the system
-- `type` -- Must be `system`
-- `status` -- `active`, `deprecated`, `draft`, or `needs-review`
-- `owner` -- Team or role responsible
-- `last_reviewed` -- Date of last review (`YYYY-MM-DD`)
+- `title` — 系统名称
+- `type` — 必须为 `system`
+- `status` — `active`、`deprecated`、`draft` 或 `needs-review`
+- `owner` — 负责的团队或角色
+- `last_reviewed` — 最近评审日期（`YYYY-MM-DD`）
 
-See [schemas/required-fields.yml](../../schemas/required-fields.yml) for the full field list.
+完整字段列表见 [schemas/required-fields.yml](../../schemas/required-fields.yml)。
 
-## Examples
+## 示例
 
-- [ticket-tracker.md](ticket-tracker.md) -- IT ticketing system (fictional example)
-- [email-system.md](email-system.md) -- District email platform (fictional example)
-- [identity-provider.md](identity-provider.md) -- Central identity and SSO provider (fictional example)
+- [jiandaoyun-pm-system.md](jiandaoyun-pm-system.md) — 简道云项目管理系统
