@@ -2,3 +2,8 @@
 # Minimal — only what the scripts need.
 
 PyYAML>=6.0
+
+# --- 在线编辑与校验后端 (FastAPI) ---
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.6.0
