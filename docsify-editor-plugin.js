@@ -69,6 +69,8 @@
     if (!raw) return { mode: "home" };
     // 首页（homepage 指向 docsify/README.md，或根 README）
     if (raw === "docsify/README.md" || raw === "README.md") return { mode: "home" };
+    // docsify/ 下其它页面（如校验规则）：只读展示，不显示编辑/删除按钮
+    if (raw.indexOf("docsify/") === 0) return { mode: "plain" };
 
     // 分类页：docs/<category>/<rest>
     var m = raw.match(/^docs\/([^/]+)\/(.+)$/);
@@ -145,6 +147,228 @@
   }
 
   // -------------------------------------------------------------------------
+  // 元数据表单：必填字段抽离为表单输入框，富文本只填正文。
+  // -------------------------------------------------------------------------
+
+  // 分类 → 默认文档类型
+  var CATEGORY_TYPE = {
+    systems: "system",
+    services: "service",
+    integrations: "integration",
+    runbooks: "runbook",
+  };
+
+  // 字段定义：label / key / kind(text|select|date|list|textarea) / options / required / help
+  var FIELD_DEFS = {
+    title: { label: "标题 title", kind: "text", required: true, help: "文档标题，如「OA 系统」" },
+    type: {
+      label: "类型 type", kind: "select", required: true,
+      options: [
+        { v: "system", t: "system（系统）" },
+        { v: "service", t: "service（服务）" },
+        { v: "integration", t: "integration（集成）" },
+        { v: "runbook", t: "runbook（应急手册）" },
+      ],
+      help: "决定文档归属的目录与必填字段",
+    },
+    status: {
+      label: "状态 status", kind: "select", required: true,
+      options: [
+        { v: "active", t: "active（在用）" },
+        { v: "deprecated", t: "deprecated（已弃用）" },
+        { v: "draft", t: "draft（草稿）" },
+        { v: "needs-review", t: "needs-review（待评审）" },
+      ],
+      help: "文档当前状态",
+    },
+    owner: { label: "负责人 owner", kind: "text", required: true, help: "负责团队或角色，如「行政管理团队」" },
+    last_reviewed: { label: "最近评审 last_reviewed", kind: "date", required: true, help: "最近评审日期，格式 YYYY-MM-DD" },
+    description: { label: "描述 description", kind: "textarea", help: "一句话概述（可选）" },
+    vendor: { label: "厂商 vendor", kind: "text", help: "厂商或供应商（可选）" },
+    hosting: {
+      label: "托管 hosting", kind: "select",
+      options: [{ v: "on-prem", t: "on-prem（本地）" }, { v: "cloud", t: "cloud（云）" }, { v: "hybrid", t: "hybrid（混合）" }, { v: "unknown", t: "unknown" }],
+      help: "托管方式（可选）",
+    },
+    authentication: {
+      label: "认证 authentication", kind: "select",
+      options: [{ v: "SSO", t: "SSO" }, { v: "LDAP", t: "LDAP" }, { v: "local", t: "local" }, { v: "none", t: "none" }, { v: "unknown", t: "unknown" }],
+      help: "认证方式（可选）",
+    },
+    tier: {
+      label: "服务级别 tier", kind: "select",
+      options: [{ v: "tier-1", t: "tier-1" }, { v: "tier-2", t: "tier-2" }, { v: "tier-3", t: "tier-3" }, { v: "unknown", t: "unknown" }],
+      help: "服务级别（可选）",
+    },
+    systems: { label: "关联系统 systems", kind: "list", required: true, help: "关联的系统，多个用英文逗号分隔" },
+    direction: {
+      label: "数据方向 direction", kind: "select",
+      options: [{ v: "one-way", t: "one-way（单向）" }, { v: "two-way", t: "two-way（双向）" }, { v: "unknown", t: "unknown" }],
+      help: "数据流向（可选）",
+    },
+    protocol: {
+      label: "协议 protocol", kind: "select",
+      options: [{ v: "API", t: "API" }, { v: "SFTP", t: "SFTP" }, { v: "LDAP", t: "LDAP" }, { v: "SAML", t: "SAML" }, { v: "SCIM", t: "SCIM" }, { v: "OAuth", t: "OAuth" }, { v: "webhook", t: "webhook" }, { v: "unknown", t: "unknown" }],
+      help: "集成协议（可选）",
+    },
+    severity: {
+      label: "严重级别 severity", kind: "select", required: true,
+      options: [{ v: "critical", t: "critical（危急）" }, { v: "high", t: "high（高）" }, { v: "medium", t: "medium（中）" }, { v: "low", t: "low（低）" }, { v: "unknown", t: "unknown" }],
+      help: "事件严重级别",
+    },
+    dependencies: { label: "依赖 dependencies", kind: "list", help: "依赖项，多个用英文逗号分隔（可选）" },
+    tags: { label: "标签 tags", kind: "list", help: "标签，多个用英文逗号分隔（可选）" },
+    related_services: { label: "相关服务 related_services", kind: "list", help: "相关服务，多个用英文逗号分隔（可选）" },
+  };
+
+  // 各类型展示的字段顺序（必填在前，常用可选在后）
+  var TYPE_FIELDS = {
+    system: ["title", "type", "status", "owner", "last_reviewed", "description", "vendor", "hosting", "authentication", "dependencies", "tags"],
+    service: ["title", "type", "status", "owner", "last_reviewed", "description", "tier", "tags"],
+    integration: ["title", "type", "status", "owner", "last_reviewed", "systems", "description", "direction", "protocol", "tags"],
+    runbook: ["title", "type", "status", "owner", "last_reviewed", "severity", "description", "related_services", "tags"],
+  };
+
+  /** 解析 Markdown 内容 → { fm: 对象, body: 正文 }。无 frontmatter 时 body 为全文。 */
+  function parseFrontmatter(content) {
+    var text = String(content || "").replace(/^\uFEFF/, "");
+    var m = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n?/);
+    if (!m) return { fm: {}, body: text };
+    var fm = {};
+    var lines = m[1].split("\n");
+    var i = 0;
+    while (i < lines.length) {
+      var line = lines[i];
+      var kv = line.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+      if (kv) {
+        var key = kv[1];
+        var val = kv[2].trim();
+        // 引号包裹
+        var q = val.match(/^["'](.*)["']$/);
+        if (q) fm[key] = q[1];
+        else if (val === "true") fm[key] = true;
+        else if (val === "false") fm[key] = false;
+        else if (val !== "" && !isNaN(Number(val))) fm[key] = Number(val);
+        else if (val === "") {
+          // 可能是列表（后续以 - 开头）
+          var list = [];
+          var j = i + 1;
+          while (j < lines.length && /^\s*-\s+/.test(lines[j])) {
+            list.push(lines[j].replace(/^\s*-\s+/, "").trim());
+            j++;
+          }
+          if (list.length) { fm[key] = list; i = j - 1; }
+          else fm[key] = "";
+        } else fm[key] = val;
+      }
+      i++;
+    }
+    return { fm: fm, body: text.slice(m[0].length).replace(/^\s*\n/, "") };
+  }
+
+  /** 把表单值组装成 YAML frontmatter 字符串。 */
+  function buildFrontmatter(values) {
+    var keys = ["title", "type", "status", "owner", "last_reviewed",
+      "description", "vendor", "hosting", "authentication", "tier",
+      "systems", "direction", "protocol", "severity",
+      "dependencies", "tags", "related_services"];
+    var out = ["---"];
+    keys.forEach(function (k) {
+      var v = values[k];
+      if (v === undefined || v === null || v === "") return;
+      if (Array.isArray(v)) {
+        if (!v.length) return;
+        out.push(k + ":");
+        v.forEach(function (item) { out.push("  - " + item); });
+      } else {
+        out.push(k + ": " + v);
+      }
+    });
+    out.push("---");
+    return out.join("\n");
+  }
+
+  /** 收集表单当前值。 */
+  function collectFormValues() {
+    var values = {};
+    var inputs = document.querySelectorAll("#wiki-meta-form [data-key]");
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      var key = el.getAttribute("data-key");
+      if (el.type === "checkbox") {
+        values[key] = el.checked ? el.value : "";
+      } else if (el.tagName === "SELECT") {
+        values[key] = el.value || "";
+      } else {
+        values[key] = el.value.trim();
+      }
+    }
+    // 列表字段：逗号分隔字符串 → 数组
+    ["systems", "dependencies", "tags", "related_services"].forEach(function (k) {
+      if (typeof values[k] === "string" && values[k] !== "") {
+        values[k] = values[k].split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      }
+    });
+    return values;
+  }
+
+  /** 根据类型渲染表单字段区。 */
+  function renderMetaForm(type) {
+    var container = document.getElementById("wiki-meta-form");
+    if (!container) return;
+    var keys = TYPE_FIELDS[type] || TYPE_FIELDS.system;
+    var html = "";
+    keys.forEach(function (key) {
+      var def = FIELD_DEFS[key];
+      if (!def) return;
+      var req = def.required ? " <span class='wiki-req'>*</span>" : "";
+      var reqAttr = def.required ? " required" : "";
+      var help = def.help ? "<div class='wiki-field-help'>" + def.help + "</div>" : "";
+      var input = "";
+      if (def.kind === "select") {
+        input = "<select data-key='" + key + "'" + reqAttr + ">";
+        input += "<option value=''></option>";
+        (def.options || []).forEach(function (o) {
+          input += "<option value='" + o.v + "'>" + o.t + "</option>";
+        });
+        input += "</select>";
+      } else if (def.kind === "date") {
+        input = "<input type='date' data-key='" + key + "'" + reqAttr + ">";
+      } else if (def.kind === "textarea") {
+        input = "<textarea data-key='" + key + "' rows='2'" + reqAttr + "></textarea>";
+      } else {
+        input = "<input type='text' data-key='" + key + "' spellcheck='false'" + reqAttr + ">";
+      }
+      html += "<div class='wiki-field' data-field='" + key + "'><label>" + def.label + req + "</label>" + input + help + "</div>";
+    });
+    container.innerHTML = html;
+    // 回填 type 下拉当前值（新增/切换类型后保持选中，避免下拉被重置为空）
+    var typeSel = container.querySelector('[data-key="type"]');
+    if (typeSel && type) typeSel.value = type;
+  }
+
+  /** 把已解析的 frontmatter 回填到表单。 */
+  function fillForm(values) {
+    var inputs = document.querySelectorAll("#wiki-meta-form [data-key]");
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      var key = el.getAttribute("data-key");
+      var v = values[key];
+      if (v === undefined || v === null) continue;
+      if (Array.isArray(v)) v = v.join(", ");
+      if (el.tagName === "SELECT") {
+        // 逐项匹配 value（避免选项文本带中文导致不匹配）
+        for (var j = 0; j < el.options.length; j++) {
+          if (el.options[j].value === String(v)) { el.value = String(v); break; }
+        }
+      } else {
+        el.value = String(v);
+      }
+    }
+  }
+
+
+  // -------------------------------------------------------------------------
   // 模态框构建
   // -------------------------------------------------------------------------
 
@@ -166,7 +390,12 @@
       '      <label>文件路径（相对 docs/）：</label>' +
       '      <input type="text" id="wiki-new-path" placeholder="systems/my-new-page.md" spellcheck="false">' +
       "    </div>" +
-      '    <textarea id="wiki-editor"></textarea>' +
+      '    <div class="wiki-meta-scroll" id="wiki-meta-scroll">' +
+      '      <div class="wiki-meta-title">📋 元数据（必填项已抽离，富文本只需填正文）</div>' +
+      '      <div class="wiki-meta-grid" id="wiki-meta-form"></div>' +
+      "    </div>" +
+      '    <div class="wiki-body-label">📄 正文内容</div>' +
+      '    <div class="wiki-editor-wrap"><textarea id="wiki-editor"></textarea></div>' +
       "  </div>" +
       '  <div class="wiki-modal-footer">' +
       '    <button id="wiki-btn-validate" class="wiki-btn wiki-btn-secondary">▶️ 运行校验</button>' +
@@ -199,6 +428,19 @@
       if (routeInfo.mode === "create") validateNewContent();
       else runValidation();
     });
+
+    // 类型切换时，按新类型重新渲染表单字段区
+    document.getElementById("wiki-meta-form").addEventListener("change", function (e) {
+      var t = e.target;
+      if (t && t.getAttribute && t.getAttribute("data-key") === "type") {
+        var newType = t.value || "system";
+        var prevType = window.__wikiMetaType || "system";
+        if (newType !== prevType) {
+          window.__wikiMetaType = newType;
+          renderMetaForm(newType);
+        }
+      }
+    });
   }
 
   /** 打开模态框。mode: "edit" | "create"。 */
@@ -213,16 +455,30 @@
     var newPathRow = document.getElementById("wiki-new-path-row");
     var newPathInput = document.getElementById("wiki-new-path");
 
+    // 根据模式确定默认类型
+    var defaultType = "system";
+    if (mode === "create" && category) {
+      defaultType = CATEGORY_TYPE[category] || "system";
+    } else if (mode === "edit") {
+      defaultType = null; // 编辑时由回填内容决定，先渲染默认再覆盖
+    }
+
     if (mode === "create") {
       titleEl.textContent = "➕ 新增页面" + (category ? "（" + category + "/）" : "");
       saveBtn.textContent = "✅ 提交";
       newPathRow.style.display = "flex";
       // 预填分类目录，用户补充文件名
       newPathInput.value = category ? category + "/" : "";
+      // 渲染空表单（默认类型）
+      window.__wikiMetaType = defaultType;
+      renderMetaForm(defaultType);
     } else {
       titleEl.textContent = "✏️ 编辑：" + filePath;
       saveBtn.textContent = "💾 保存";
       newPathRow.style.display = "none";
+      // 编辑：先渲染默认表单，加载内容后再按实际 type 重渲染并回填
+      window.__wikiMetaType = "system";
+      renderMetaForm("system");
     }
 
     var modal = document.getElementById("wiki-editor-modal");
@@ -280,19 +536,25 @@
       placeholder: "在这里输入 Markdown 内容…",
       // 让 CodeMirror 内部滚动条接管内容滚动：
       // maxHeight 超过则编辑器内部滚动，滚轮可正常操作，而非仅方向键。
-      maxHeight: "65vh",
-      minHeight: "320px",
+      maxHeight: "42vh",
+      minHeight: "240px",
     });
   }
 
-  /** 从后端加载文件内容并回填到编辑器。 */
+  /** 从后端加载文件内容，解析后回填元数据表单与正文编辑器。 */
   async function loadFileContent(filePath) {
     try {
       var data = await apiFetch("/api/files/" + encodeURIComponent(filePath));
+      var parsed = parseFrontmatter(data.content || "");
+      // 按实际 type 重渲染表单（保证字段正确），再回填
+      var type = parsed.fm.type || "system";
+      window.__wikiMetaType = type;
+      renderMetaForm(type);
+      fillForm(parsed.fm);
       if (easyMDE && easyMDE.value) {
-        easyMDE.value(data.content || "");
+        easyMDE.value(parsed.body || "");
       } else {
-        document.getElementById("wiki-editor").value = data.content || "";
+        document.getElementById("wiki-editor").value = parsed.body || "";
       }
     } catch (err) {
       toast("加载文件失败：" + err.message, "error");
@@ -302,6 +564,30 @@
   /** 获取编辑器内容。 */
   function getEditorContent() {
     return easyMDE && easyMDE.value ? easyMDE.value() : document.getElementById("wiki-editor").value;
+  }
+
+  /** 校验必填元数据字段，返回错误文案或 null。 */
+  function validateMetaForm() {
+    var inputs = document.querySelectorAll("#wiki-meta-form [data-key][required]");
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      var v = el.value ? el.value.trim() : "";
+      if (!v) {
+        var label = el.closest(".wiki-field") ? el.closest(".wiki-field").querySelector("label") : null;
+        var name = label ? label.textContent.replace("*", "").trim() : el.getAttribute("data-key");
+        return "请填写必填字段：" + name;
+      }
+    }
+    return null;
+  }
+
+  /** 组装完整内容：frontmatter（来自表单）+ 正文（来自编辑器）。 */
+  function composeFullContent() {
+    var values = collectFormValues();
+    var fm = buildFrontmatter(values);
+    var body = getEditorContent();
+    if (body && !body.replace(/\s/g, "")) body = "";
+    return (fm + "\n\n" + body).replace(/\n{3,}/g, "\n\n").trim() + "\n";
   }
 
   /** 获取当前目标路径（新增模式从输入框取，编辑模式用 currentFile）。 */
@@ -336,7 +622,13 @@
   async function saveCurrentFile() {
     if (!currentFile) return;
     var btn = document.getElementById("wiki-btn-save");
-    var content = getEditorContent();
+    // 必填元数据校验
+    var metaErr = validateMetaForm();
+    if (metaErr) {
+      toast(metaErr, "warn");
+      return;
+    }
+    var content = composeFullContent();
     btn.disabled = true;
     btn.textContent = "保存中…";
     try {
@@ -370,6 +662,12 @@
       toast(pathErr, "warn");
       return;
     }
+    var metaErr = validateMetaForm();
+    if (metaErr) {
+      toast(metaErr, "warn");
+      return;
+    }
+    var content = composeFullContent();
     area.style.display = "block";
     area.textContent = "校验中…";
     area.className = "wiki-validate-result";
@@ -378,7 +676,7 @@
       var result = await apiFetch("/api/validate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: path, content: getEditorContent() }),
+        body: JSON.stringify({ path: path, content: content }),
       });
       renderValidationResult(result);
     } catch (err) {
@@ -397,6 +695,12 @@
       toast(pathErr, "warn");
       return;
     }
+    var metaErr = validateMetaForm();
+    if (metaErr) {
+      toast(metaErr, "warn");
+      return;
+    }
+    var content = composeFullContent();
     btn.disabled = true;
     btn.textContent = "校验中…";
     try {
@@ -404,7 +708,7 @@
       var check = await apiFetch("/api/validate-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: path, content: getEditorContent() }),
+        body: JSON.stringify({ path: path, content: content }),
       });
       if (!check.success) {
         renderValidationResult(check);
@@ -416,7 +720,7 @@
       await apiFetch("/api/files/" + encodeURIComponent(path), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: getEditorContent() }),
+        body: JSON.stringify({ content: content }),
       });
       toast("新增成功 ✅", "success");
       setTimeout(closeModal, 300);
@@ -549,7 +853,7 @@
       if (editBtn) editBtn.style.display = "none";
       if (delBtn) delBtn.style.display = "none";
     } else {
-      // 首页：不显示任何按钮
+      // 首页 / docsify 下其它只读页面：不显示任何按钮
       if (editBtn) editBtn.style.display = "none";
       if (delBtn) delBtn.style.display = "none";
       if (newBtn) newBtn.style.display = "none";

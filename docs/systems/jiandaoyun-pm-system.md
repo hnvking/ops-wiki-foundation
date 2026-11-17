@@ -1,12 +1,12 @@
 ---
-title: "简道云 PM 系统"
+title: 简道云 PM 系统
 type: system
 status: draft
-owner: "项目管理团队"
-last_reviewed: "2026-11-16"
-description: "基于简道云搭建的项目管理系统，用于项目立项、任务跟踪、进度汇报与资源协同。"
-vendor: "简道云"
-hosting: cloud
+owner: 项目管理团队
+last_reviewed: 2026-11-16
+description: 基于简道云搭建的项目管理系统，用于项目立项、任务跟踪、进度汇报与资源协同。
+vendor: 简道云
+hosting: on-prem
 authentication: SSO
 dependencies:
   - "企业微信"
