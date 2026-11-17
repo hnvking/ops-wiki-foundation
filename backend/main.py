@@ -14,6 +14,7 @@ FastAPI 后端 —— ops-wiki-foundation 的 Markdown 在线编辑与校验触�
     uvicorn backend.main:app --reload --port 8000
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -66,6 +67,131 @@ def resolve_docs_path(file_path: str) -> Path:
         )
 
     return candidate
+
+
+# ---------------------------------------------------------------------------
+# 导航注册辅助：新页面创建成功后，自动把链接加进 _sidebar.md 和分类 README
+# ---------------------------------------------------------------------------
+
+# 分类目录名 → 侧边栏展示名（显示名含 "系统 Systems" 这类中英文）
+CATEGORY_LABELS = {
+    "systems": "系统 Systems",
+    "services": "服务 Services",
+    "integrations": "集成 Integrations",
+    "runbooks": "应急手册 Runbooks",
+}
+
+
+def extract_title(content: str) -> str:
+    """从 Markdown frontmatter 中提取 title 字段；取不到则回退到第一个 # 标题。"""
+    m = re.search(r"^---\s*\n(.*?)\n---", content, re.S)
+    if m:
+        fm = m.group(1)
+        tm = re.search(r"^title:\s*[\"']?([^\"'\n]+)", fm, re.M)
+        if tm:
+            return tm.group(1).strip()
+    hm = re.search(r"^#\s+(.+)$", content, re.M)
+    if hm:
+        return hm.group(1).strip()
+    return "新页面"
+
+
+def register_new_page(file_path: str, content: str) -> None:
+    """
+    把新创建的页面注册进导航：
+      1. _sidebar.md 的分类父项下追加子链接
+      2. docs/<category>/README.md 的「示例」区追加链接
+
+    file_path 为相对 docs/ 的路径（如 systems/foo.md），content 为新文件全文。
+    """
+    file_path = file_path.replace("\\", "/").lstrip("/")
+    parts = file_path.split("/")
+    if len(parts) < 2:
+        return  # 不在分类子目录内，不处理
+    category = parts[0]
+    filename = parts[-1]
+    title = extract_title(content)
+
+    # ---- 1. 更新 _sidebar.md ----
+    sidebar_path = BASE_DIR / "_sidebar.md"
+    if sidebar_path.exists():
+        try:
+            sidebar_text = sidebar_path.read_text(encoding="utf-8")
+        except OSError:
+            sidebar_text = ""
+    else:
+        sidebar_text = ""
+
+    # 已存在该链接则跳过
+    if filename not in sidebar_text:
+        label = CATEGORY_LABELS.get(category, category)
+        parent_prefix = f"- [{label}](docs/{category}/README.md)"
+        new_line = f"  - [{title}](docs/{file_path})"
+        if parent_prefix in sidebar_text:
+            # 在父项行之后插入子链接
+            lines = sidebar_text.split("\n")
+            for i, line in enumerate(lines):
+                if line.strip() == parent_prefix.strip():
+                    # 跳过父项后已有的子项，找到插入位置
+                    insert_at = i + 1
+                    while insert_at < len(lines) and lines[insert_at].startswith("  - "):
+                        insert_at += 1
+                    lines.insert(insert_at, new_line)
+                    break
+            sidebar_text = "\n".join(lines)
+        else:
+            # 找不到父项，追加到末尾
+            if sidebar_text and not sidebar_text.endswith("\n"):
+                sidebar_text += "\n"
+            sidebar_text += new_line + "\n"
+        try:
+            sidebar_path.write_text(sidebar_text, encoding="utf-8")
+        except OSError:
+            pass
+
+    # ---- 2. 更新 docs/<category>/README.md ----
+    readme_path = DOCS_DIR / category / "README.md"
+    if readme_path.exists():
+        try:
+            readme_text = readme_path.read_text(encoding="utf-8")
+        except OSError:
+            readme_text = ""
+    else:
+        readme_text = ""
+
+    rel_link = f"docs/{file_path}"
+    if filename not in readme_text:
+        entry = f"- [{filename}]({rel_link}) — {title}"
+        if "## 示例" in readme_text:
+            # 在「示例」区末尾追加
+            lines = readme_text.split("\n")
+            idx = None
+            for i, line in enumerate(lines):
+                if line.strip() == "## 示例":
+                    idx = i
+                    break
+            if idx is not None:
+                insert_at = idx + 1
+                while insert_at < len(lines) and (
+                    not lines[insert_at].startswith("#") or lines[insert_at].strip() == ""
+                ):
+                    # 停在下一个 ## 标题前
+                    if lines[insert_at].strip().startswith("## ") and lines[insert_at].strip() != "## 示例":
+                        break
+                    insert_at += 1
+                # 往回退，插到下一个 ## 前（若正好在下一个标题上）
+                lines.insert(insert_at, entry)
+                readme_text = "\n".join(lines)
+            else:
+                readme_text += "\n" + entry + "\n"
+        else:
+            if readme_text and not readme_text.endswith("\n"):
+                readme_text += "\n"
+            readme_text += "\n## 页面\n\n" + entry + "\n"
+        try:
+            readme_path.write_text(readme_text, encoding="utf-8")
+        except OSError:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +375,12 @@ def validate_content(payload: FilePathContent) -> dict:
 
 @app.post("/api/files/{file_path:path}")
 def create_file(file_path: str, payload: FileContent) -> dict:
-    """创建新的 Markdown 文档。若目标已存在则返回 409。"""
+    """
+    创建新的 Markdown 文档。若目标已存在则返回 409。
+
+    安全兜底：写盘前先对内容做一次强制校验，校验不通过则返回 422，
+    不合规的文档不会被保存（即使前端被绕过，直接调用本接口也无法存下）。
+    """
     target = resolve_docs_path(file_path)
 
     if target.suffix.lower() != ".md":
@@ -261,11 +392,35 @@ def create_file(file_path: str, payload: FileContent) -> dict:
             detail=f"文件已存在，请改用编辑模式：{file_path}",
         )
 
+    # ---- 强制内容校验兜底：不通过则拒绝落盘 ----
     target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        target.write_text(payload.content, encoding="utf-8")
+        validation = run_validate_script()
+    finally:
+        # 无论结果如何都删除临时校验文件（不残留半成品）
+        try:
+            if target.exists():
+                target.unlink()
+        except OSError:
+            pass
+
+    if not validation.get("success"):
+        detail = (
+            "内容校验未通过，已阻止保存。请修正后重试。\n"
+            f"{validation.get('stdout', '')}{validation.get('stderr', '')}"
+        ).strip()
+        raise HTTPException(status_code=422, detail=detail)
+
+    # ---- 校验通过，正式创建 ----
     try:
         target.write_text(payload.content, encoding="utf-8")
     except OSError as exc:
         raise HTTPException(status_code=500, detail=f"创建失败：{exc}")
+
+    # 创建成功后，自动把新页面注册进 _sidebar.md 与分类 README.md，
+    # 使前端刷新后能直接在导航/索引页看到新页面。
+    register_new_page(file_path, payload.content)
 
     return {"path": file_path, "created": True}
 
