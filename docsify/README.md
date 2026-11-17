@@ -10,6 +10,7 @@
 - [服务 Services](docs/services/README.md) — 提供给用户的 IT 服务
 - [集成 Integrations](docs/integrations/README.md) — 系统间的连接与数据流
 - [应急手册 Runbooks](docs/runbooks/README.md) — 事件响应步骤
+- [校验规则](docsify/validation-rules.md) — 文档校验的规则说明
 
 ## 快速开始
 
