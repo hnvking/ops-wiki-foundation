@@ -194,6 +194,55 @@ def register_new_page(file_path: str, content: str) -> None:
             pass
 
 
+def unregister_page(file_path: str) -> None:
+    """
+    从导航中移除指定页面的链接（删除文档时调用）：
+      1. _sidebar.md 中删除指向该页面的子链接
+      2. docs/<category>/README.md 的「示例」区删除对应条目
+
+    file_path 为相对 docs/ 的路径（如 systems/foo.md）。
+    只移除精确匹配 `docs/<file_path>` 链接的行，不影响其它链接。
+    """
+    file_path = file_path.replace("\\", "/").lstrip("/")
+    parts = file_path.split("/")
+    if len(parts) < 2:
+        return  # 不在分类子目录内，不处理
+    category = parts[0]
+    link_target = f"docs/{file_path}"
+
+    # ---- 1. 从 _sidebar.md 移除 ----
+    sidebar_path = BASE_DIR / "_sidebar.md"
+    if sidebar_path.exists():
+        try:
+            lines = sidebar_path.read_text(encoding="utf-8").split("\n")
+        except OSError:
+            lines = []
+        new_lines = [ln for ln in lines if link_target not in ln]
+        if len(new_lines) != len(lines):
+            try:
+                sidebar_path.write_text(
+                    "\n".join(new_lines).rstrip("\n") + "\n", encoding="utf-8"
+                )
+            except OSError:
+                pass
+
+    # ---- 2. 从 docs/<category>/README.md 移除 ----
+    readme_path = DOCS_DIR / category / "README.md"
+    if readme_path.exists():
+        try:
+            lines = readme_path.read_text(encoding="utf-8").split("\n")
+        except OSError:
+            lines = []
+        new_lines = [ln for ln in lines if link_target not in ln]
+        if len(new_lines) != len(lines):
+            try:
+                readme_path.write_text(
+                    "\n".join(new_lines).rstrip("\n") + "\n", encoding="utf-8"
+                )
+            except OSError:
+                pass
+
+
 # ---------------------------------------------------------------------------
 # FastAPI 应用与 CORS
 # ---------------------------------------------------------------------------
@@ -423,6 +472,39 @@ def create_file(file_path: str, payload: FileContent) -> dict:
     register_new_page(file_path, payload.content)
 
     return {"path": file_path, "created": True}
+
+
+@app.delete("/api/files/{file_path:path}")
+def delete_file(file_path: str) -> dict:
+    """
+    删除指定 Markdown 文档，并同步从导航（_sidebar.md 与分类 README.md）移除其链接。
+
+    保护：不允许删除 README.md（分类索引页），避免破坏导航结构。
+    """
+    target = resolve_docs_path(file_path)
+
+    if target.suffix.lower() != ".md":
+        raise HTTPException(status_code=400, detail="仅允许删除 .md 文件")
+
+    if target.name.upper() == "README.MD":
+        raise HTTPException(
+            status_code=400, detail="不允许删除分类索引页（README.md）"
+        )
+
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"文件不存在：{file_path}")
+    if not target.is_file():
+        raise HTTPException(status_code=400, detail=f"不是常规文件：{file_path}")
+
+    try:
+        target.unlink()
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"删除失败：{exc}")
+
+    # 同步从导航移除该页面的链接
+    unregister_page(file_path)
+
+    return {"path": file_path, "deleted": True}
 
 
 @app.get("/api/health")

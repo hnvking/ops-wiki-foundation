@@ -426,6 +426,36 @@
   }
 
   // -------------------------------------------------------------------------
+  // 删除页面
+  // -------------------------------------------------------------------------
+
+  /** 删除当前文档：二次确认后调用后端 DELETE，成功后刷新页面。 */
+  async function deleteCurrentFile() {
+    if (!currentFile) return;
+    var ok = window.confirm(
+      "确定要删除「" + currentFile + "」吗？\n" +
+      "该操作会同时删除文件本身，并从侧边栏与分类索引中移除对应链接，且不可恢复。"
+    );
+    if (!ok) return;
+    try {
+      await apiFetch("/api/files/" + encodeURIComponent(currentFile), {
+        method: "DELETE",
+      });
+      toast("删除成功 ✅", "success");
+      // 删除后跳转到该分类索引页（或首页），避免停留在已不存在的页面
+      var targetHash = currentCategory
+        ? "#/docs/" + currentCategory + "/README.md"
+        : "#/";
+      setTimeout(function () {
+        window.location.hash = targetHash;
+      }, 300);
+      setTimeout(refreshPage, 600);
+    } catch (err) {
+      toast("删除失败：" + err.message, "error");
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // 运行全库校验（编辑模式）
   // -------------------------------------------------------------------------
 
@@ -477,10 +507,11 @@
 
   function injectButtons() {
     var editBtn = document.getElementById("wiki-edit-btn");
+    var delBtn = document.getElementById("wiki-del-btn");
     var newBtn = document.getElementById("wiki-new-btn");
 
     if (routeInfo.mode === "doc") {
-      // 文档页：显示编辑按钮
+      // 文档页：显示「编辑此页」+「删除」按钮（右下角浮动）
       if (!editBtn || !editBtn.isConnected) {
         editBtn = ensureButton("wiki-edit-btn", "✏️ 编辑此页", "wiki-edit-btn");
         if (editBtn) {
@@ -489,7 +520,16 @@
           });
         }
       }
+      if (!delBtn || !delBtn.isConnected) {
+        delBtn = ensureButton("wiki-del-btn", "🗑️ 删除", "wiki-del-btn");
+        if (delBtn) {
+          delBtn.addEventListener("click", function () {
+            deleteCurrentFile();
+          });
+        }
+      }
       if (editBtn) editBtn.style.display = "inline-block";
+      if (delBtn) delBtn.style.display = "inline-block";
       if (newBtn) newBtn.style.display = "none";
     } else if (routeInfo.mode === "index") {
       // 分类索引页：显示新增按钮
@@ -503,9 +543,11 @@
       }
       if (newBtn) newBtn.style.display = "inline-block";
       if (editBtn) editBtn.style.display = "none";
+      if (delBtn) delBtn.style.display = "none";
     } else {
       // 首页：不显示任何按钮
       if (editBtn) editBtn.style.display = "none";
+      if (delBtn) delBtn.style.display = "none";
       if (newBtn) newBtn.style.display = "none";
     }
   }

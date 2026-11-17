@@ -1,7 +1,7 @@
 - [首页](/)
 - [系统 Systems](docs/systems/README.md)
   - [简道云 PM 系统](docs/systems/jiandaoyun-pm-system.md)
-  - [OA 系统](docs/systems/AO.md)
+  - [OA 系统](docs/systems/OA.md)
 - [服务 Services](docs/services/README.md)
 - [集成 Integrations](docs/integrations/README.md)
 - [应急手册 Runbooks](docs/runbooks/README.md)

@@ -19,4 +19,5 @@
 ## 示例
 
 - [jiandaoyun-pm-system.md](docs/systems/jiandaoyun-pm-system.md) — 简道云项目管理系统
-- [AO.md](docs/systems/AO.md) — OA 系统
+
+- [OA.md](docs/systems/OA.md) — OA 系统
