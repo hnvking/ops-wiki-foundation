@@ -114,7 +114,10 @@
       flex-direction: column;
     }
     .wiki-modal-body .CodeMirror {
-      height: 100% !important;
+      /* 高度交给 EasyMDE 的 maxHeight/minHeight 控制，
+         内容超出时由 CodeMirror 内部滚动条接管，滚轮可正常滚动 */
+      height: auto !important;
+      max-height: 65vh;
       min-height: 320px;
       font-size: 14px;
     }

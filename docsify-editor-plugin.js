@@ -278,6 +278,10 @@
         "guide",
       ],
       placeholder: "在这里输入 Markdown 内容…",
+      // 让 CodeMirror 内部滚动条接管内容滚动：
+      // maxHeight 超过则编辑器内部滚动，滚轮可正常操作，而非仅方向键。
+      maxHeight: "65vh",
+      minHeight: "320px",
     });
   }
 
