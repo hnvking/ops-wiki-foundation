@@ -114,7 +114,11 @@
 
     /* ============ 元数据表单区 ============ */
     .wiki-meta-scroll {
-      max-height: 30vh;
+      /* 自适应对话框：字段区按内容自然显示，最多占 48vh，
+         超出时字段区内滚动；正文区保留剩余空间 */
+      flex: 0 1 auto;
+      min-height: 0;
+      max-height: 48vh;
       overflow-y: auto;
       border: 1px solid #e9ecef;
       border-radius: 6px;
@@ -162,16 +166,26 @@
       font-weight: 600;
       color: #2c3e50;
     }
-    .wiki-editor-wrap { flex: 1; min-height: 0; }
+    .wiki-editor-wrap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+    }
     .wiki-editor-wrap .EasyMDEContainer {
-      height: 100%;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
       display: flex;
       flex-direction: column;
     }
     .wiki-editor-wrap .CodeMirror {
+      flex: 1;
       height: auto !important;
-      max-height: 42vh;
-      min-height: 240px;
+      max-height: none !important;
+      min-height: 200px;
       font-size: 14px;
     }
     .wiki-editor-wrap .editor-toolbar { border-radius: 6px 6px 0 0; }
@@ -182,11 +196,11 @@
       flex-direction: column;
     }
     .wiki-modal-body .CodeMirror {
-      /* 高度交给 EasyMDE 的 maxHeight/minHeight 控制，
-         内容超出时由 CodeMirror 内部滚动条接管，滚轮可正常滚动 */
+      /* 撑满剩余高度，内容超出时由 CodeMirror 内部滚动条接管 */
+      flex: 1;
       height: auto !important;
-      max-height: 65vh;
-      min-height: 320px;
+      max-height: none !important;
+      min-height: 200px;
       font-size: 14px;
     }
     .wiki-modal-footer {
@@ -302,7 +316,8 @@
   <script src="assets/docsify/docsify.min.js"></script>
   <!-- EasyMDE 编辑器（本地，避免外网 CDN 依赖） -->
   <script src="assets/easymde/easymde.min.js"></script>
-  <!-- 在线编辑/校验插件：需在 docsify 之后加载，通过 $docsify.plugins 注册 -->
-  <script src="docsify-editor-plugin.js"></script>
+  <!-- 在线编辑/校验插件：需在 docsify 之后加载，通过 $docsify.plugins 注册。
+       追加版本参数防止浏览器缓存旧文件，改插件后需同步更新 v= 值。 -->
+  <script src="docsify-editor-plugin.js?v=20261118e"></script>
 </body>
 </html>

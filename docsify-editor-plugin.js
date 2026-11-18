@@ -312,11 +312,12 @@
     return values;
   }
 
-  /** 根据类型渲染表单字段区。 */
+  /** 根据类型渲染表单字段区。所有字段直接平铺显示，不折叠。 */
   function renderMetaForm(type) {
     var container = document.getElementById("wiki-meta-form");
     if (!container) return;
     var keys = TYPE_FIELDS[type] || TYPE_FIELDS.system;
+
     var html = "";
     keys.forEach(function (key) {
       var def = FIELD_DEFS[key];
@@ -395,7 +396,8 @@
       '      <div class="wiki-meta-grid" id="wiki-meta-form"></div>' +
       "    </div>" +
       '    <div class="wiki-body-label">📄 正文内容</div>' +
-      '    <div class="wiki-editor-wrap"><textarea id="wiki-editor"></textarea></div>' +
+      '    <button id="wiki-insert-body" class="wiki-btn wiki-btn-primary" style="display:none">✏️ 插入正文</button>' +
+      '    <div class="wiki-editor-wrap" id="wiki-editor-wrap" style="display:none"><textarea id="wiki-editor"></textarea></div>' +
       "  </div>" +
       '  <div class="wiki-modal-footer">' +
       '    <button id="wiki-btn-validate" class="wiki-btn wiki-btn-secondary">▶️ 运行校验</button>' +
@@ -427,6 +429,22 @@
     document.getElementById("wiki-btn-validate").addEventListener("click", function () {
       if (routeInfo.mode === "create") validateNewContent();
       else runValidation();
+    });
+
+    // 点击「插入正文」后才初始化并显示富文本编辑器（新增与编辑模式统一）。
+    // 编辑模式：初始化后还需从后端拉取当前文档内容回填。
+    document.getElementById("wiki-insert-body").addEventListener("click", function () {
+      var btn = document.getElementById("wiki-insert-body");
+      var wrap = document.getElementById("wiki-editor-wrap");
+      btn.style.display = "none";
+      wrap.style.display = "flex";
+      ensureEasyMDE();
+      if (easyMDE) {
+        easyMDE.codemirror && easyMDE.codemirror.refresh();
+      }
+      if (routeInfo.mode === "edit" && currentFile) {
+        loadFileContent(currentFile);
+      }
     });
 
     // 类型切换时，按新类型重新渲染表单字段区
@@ -493,18 +511,14 @@
       area.className = "wiki-validate-result";
     }
 
-    // 延迟初始化 EasyMDE，确保模态框已可见（display:flex）后再挂载，
-    // 否则 CodeMirror 在隐藏容器中尺寸计算错误。
-    setTimeout(function () {
-      ensureEasyMDE();
-      if (mode === "create") {
-        if (easyMDE && easyMDE.value) easyMDE.value("");
-        else document.getElementById("wiki-editor").value = "";
-      } else {
-        // 编辑模式：从后端拉取当前文档内容并回填到编辑器
-        loadFileContent(filePath);
-      }
-    }, 60);
+    // 正文编辑区显示控制：两种模式统一 —— 默认只显示「插入正文」按钮，
+    // 点击后才初始化并显示富文本编辑器。
+    //   新增模式：点击后初始化空编辑器
+    //   编辑模式：点击后初始化编辑器并拉取当前文档内容回填
+    var insertBtn = document.getElementById("wiki-insert-body");
+    var editorWrap = document.getElementById("wiki-editor-wrap");
+    insertBtn.style.display = "inline-block";
+    editorWrap.style.display = "none";
   }
 
   function closeModal() {
@@ -534,10 +548,8 @@
         "guide",
       ],
       placeholder: "在这里输入 Markdown 内容…",
-      // 让 CodeMirror 内部滚动条接管内容滚动：
-      // maxHeight 超过则编辑器内部滚动，滚轮可正常操作，而非仅方向键。
-      maxHeight: "42vh",
-      minHeight: "240px",
+      // 高度由 CSS 全权控制（.wiki-editor-wrap 内 flex 撑满剩余空间），
+      // 不再设置 maxHeight/minHeight，避免编辑器只显示一部分高度。
     });
   }
 
