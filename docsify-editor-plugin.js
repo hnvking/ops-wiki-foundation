@@ -432,7 +432,8 @@
     });
 
     // 点击「插入正文」后才初始化并显示富文本编辑器（新增与编辑模式统一）。
-    // 编辑模式：初始化后还需从后端拉取当前文档内容回填。
+    // 编辑模式的正文内容已由 openModal -> loadFileContent 在打开时回填
+    // （首次编辑写入 textarea，EasyMDE 初始化时自动读取；后续编辑直接写入 easyMDE）。
     document.getElementById("wiki-insert-body").addEventListener("click", function () {
       var btn = document.getElementById("wiki-insert-body");
       var wrap = document.getElementById("wiki-editor-wrap");
@@ -440,10 +441,10 @@
       wrap.style.display = "flex";
       ensureEasyMDE();
       if (easyMDE) {
-        easyMDE.codemirror && easyMDE.codemirror.refresh();
-      }
-      if (routeInfo.mode === "edit" && currentFile) {
-        loadFileContent(currentFile);
+        // 等布局稳定后再刷新，避免 CodeMirror 在 flex 布局完成前计算错误尺寸
+        setTimeout(function () {
+          easyMDE.codemirror && easyMDE.codemirror.refresh();
+        }, 80);
       }
     });
 
@@ -494,9 +495,10 @@
       titleEl.textContent = "✏️ 编辑：" + filePath;
       saveBtn.textContent = "💾 保存";
       newPathRow.style.display = "none";
-      // 编辑：先渲染默认表单，加载内容后再按实际 type 重渲染并回填
-      window.__wikiMetaType = "system";
-      renderMetaForm("system");
+      // 编辑：点「编辑此页」即拉取并回填元数据字段（正文仍由「插入正文」带出）。
+      // loadFileContent 会按实际 type 重渲染表单并回填字段；正文暂存到 textarea，
+      // 待「插入正文」初始化 EasyMDE 时读取。
+      if (currentFile) loadFileContent(currentFile);
     }
 
     var modal = document.getElementById("wiki-editor-modal");

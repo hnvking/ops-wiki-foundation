@@ -181,12 +181,24 @@
       display: flex;
       flex-direction: column;
     }
+    .wiki-editor-wrap .editor-toolbar { flex-shrink: 0; }
     .wiki-editor-wrap .CodeMirror {
-      flex: 1;
+      /* flex 决定高度，且作为 flex 容器，让 .CodeMirror-scroll 用 flex:1 填满 */
+      flex: 1 1 auto;
       height: auto !important;
       max-height: none !important;
-      min-height: 200px;
+      min-height: 0;
       font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .wiki-editor-wrap .CodeMirror-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto !important;
+      max-height: none !important;
+      overflow-y: auto !important;
     }
     .wiki-editor-wrap .editor-toolbar { border-radius: 6px 6px 0 0; }
     .wiki-editor-wrap .CodeMirror { border-radius: 0 0 6px 6px; }
@@ -195,13 +207,24 @@
       display: flex;
       flex-direction: column;
     }
+    .wiki-modal-body .editor-toolbar { flex-shrink: 0; }
     .wiki-modal-body .CodeMirror {
-      /* 撑满剩余高度，内容超出时由 CodeMirror 内部滚动条接管 */
-      flex: 1;
+      /* flex 决定高度，且作为 flex 容器，让 .CodeMirror-scroll 用 flex:1 填满 */
+      flex: 1 1 auto;
       height: auto !important;
       max-height: none !important;
-      min-height: 200px;
+      min-height: 0;
       font-size: 14px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .wiki-modal-body .CodeMirror-scroll {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto !important;
+      max-height: none !important;
+      overflow-y: auto !important;
     }
     .wiki-modal-footer {
       display: flex;
@@ -318,6 +341,6 @@
   <script src="assets/easymde/easymde.min.js"></script>
   <!-- 在线编辑/校验插件：需在 docsify 之后加载，通过 $docsify.plugins 注册。
        追加版本参数防止浏览器缓存旧文件，改插件后需同步更新 v= 值。 -->
-  <script src="docsify-editor-plugin.js?v=20261118e"></script>
+  <script src="docsify-editor-plugin.js?v=20261118h"></script>
 </body>
 </html>
