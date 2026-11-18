@@ -156,6 +156,7 @@
     services: "service",
     integrations: "integration",
     runbooks: "runbook",
+    faqs: "faq",
   };
 
   // 字段定义：label / key / kind(text|select|date|list|textarea) / options / required / help
@@ -168,6 +169,7 @@
         { v: "service", t: "service（服务）" },
         { v: "integration", t: "integration（集成）" },
         { v: "runbook", t: "runbook（应急手册）" },
+        { v: "faq", t: "faq（运维问题）" },
       ],
       help: "决定文档归属的目录与必填字段",
     },
@@ -219,6 +221,12 @@
     dependencies: { label: "依赖 dependencies", kind: "list", help: "依赖项，多个用英文逗号分隔（可选）" },
     tags: { label: "标签 tags", kind: "list", help: "标签，多个用英文逗号分隔（可选）" },
     related_services: { label: "相关服务 related_services", kind: "list", help: "相关服务，多个用英文逗号分隔（可选）" },
+    related_system: { label: "所属系统 related_system", kind: "text", required: true, help: "问题所属系统，如「简道云 PM 系统」" },
+    resolution: {
+      label: "解决状态 resolution", kind: "select", required: true,
+      options: [{ v: "open", t: "open（未解决）" }, { v: "in-progress", t: "in-progress（处理中）" }, { v: "resolved", t: "resolved（已解决）" }, { v: "unknown", t: "unknown（未知）" }],
+      help: "问题解决状态",
+    },
   };
 
   // 各类型展示的字段顺序（必填在前，常用可选在后）
@@ -227,6 +235,7 @@
     service: ["title", "type", "status", "owner", "last_reviewed", "description", "tier", "tags"],
     integration: ["title", "type", "status", "owner", "last_reviewed", "systems", "description", "direction", "protocol", "tags"],
     runbook: ["title", "type", "status", "owner", "last_reviewed", "severity", "description", "related_services", "tags"],
+    faq: ["title", "type", "related_system", "severity", "resolution", "last_reviewed", "description", "owner", "tags"],
   };
 
   /** 解析 Markdown 内容 → { fm: 对象, body: 正文 }。无 frontmatter 时 body 为全文。 */
@@ -271,7 +280,8 @@
     var keys = ["title", "type", "status", "owner", "last_reviewed",
       "description", "vendor", "hosting", "authentication", "tier",
       "systems", "direction", "protocol", "severity",
-      "dependencies", "tags", "related_services"];
+      "dependencies", "tags", "related_services",
+      "related_system", "resolution"];
     var out = ["---"];
     keys.forEach(function (k) {
       var v = values[k];

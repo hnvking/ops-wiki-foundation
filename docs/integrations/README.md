@@ -19,4 +19,4 @@
 
 ## 示例
 
-- [企业微信 SSO 集成](jiandaoyun-wecom-sso.md) — 简道云 PM 系统与企业微信单点登录
+- [企业微信 SSO 集成](docs/integrations/jiandaoyun-wecom-sso.md) — 简道云 PM 系统与企业微信单点登录

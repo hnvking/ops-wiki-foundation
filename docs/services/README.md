@@ -18,4 +18,4 @@
 
 ## 示例
 
-- [项目管理服务](jiandaoyun-pm-service.md) — 基于简道云 PM 系统
+- [项目管理服务](docs/services/jiandaoyun-pm-service.md) — 基于简道云 PM 系统

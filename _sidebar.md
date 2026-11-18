@@ -8,4 +8,6 @@
   - [企业微信 SSO 集成](docs/integrations/jiandaoyun-wecom-sso.md)
 - [应急手册 Runbooks](docs/runbooks/README.md)
   - [简道云 PM 系统故障应急手册](docs/runbooks/jiandaoyun-pm-outage.md)
+- [运维问题 Faqs](docs/faqs/README.md)
+  - [简道云 PM 系统 SSO 登录失败](docs/faqs/jiandaoyun-pm/sso-login-fail.md)
 - [校验规则](docsify/validation-rules.md)

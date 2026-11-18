@@ -19,4 +19,4 @@
 
 ## 示例
 
-- [简道云 PM 系统故障应急手册](jiandaoyun-pm-outage.md) — 系统不可访问/登录异常/数据异常处置
+- [简道云 PM 系统故障应急手册](docs/runbooks/jiandaoyun-pm-outage.md) — 系统不可访问/登录异常/数据异常处置

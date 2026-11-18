@@ -133,3 +133,29 @@ document_types:
       severity:
         type: enum
         values: [critical, high, medium, low, unknown]
+
+  faq:
+    description: "Operational FAQ entries grouped by system"
+    directory: "docs/faqs"
+    template: "templates/faq-page.md"
+    required:
+      - title
+      - type
+      - related_system
+      - severity
+      - resolution
+      - last_reviewed
+    optional:
+      - description
+      - owner
+      - tags
+    field_constraints:
+      last_reviewed:
+        type: date
+        format: "YYYY-MM-DD"
+      severity:
+        type: enum
+        values: [critical, high, medium, low, unknown]
+      resolution:
+        type: enum
+        values: [open, in-progress, resolved, unknown]

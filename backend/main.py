@@ -79,6 +79,7 @@ CATEGORY_LABELS = {
     "services": "服务 Services",
     "integrations": "集成 Integrations",
     "runbooks": "应急手册 Runbooks",
+    "faqs": "运维问题 Faqs",
 }
 
 
@@ -253,18 +254,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS：允许本地前端访问。默认允许 localhost 任意端口，方便本地开发。
-# 如需在生产环境限制，可修改 allow_origins 为具体域名列表。
+# CORS：允许局域网内各设备的来源访问。
+# 本服务是纯局域网内部运维知识库（含编辑/校验），允许任意来源即可满足
+# 局域网内同网段设备经 http://<本机IP>:8000 的访问。
+# 如需严格限制，可改为 allow_origins=["http://192.168.1.10:8000", ...] 白名单。
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8000",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8000",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -522,4 +518,6 @@ app.mount("/", StaticFiles(directory=str(BASE_DIR), html=True), name="static")
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    # 0.0.0.0 监听所有网卡，使局域网内其他设备可通过本机局域网 IP 访问。
+    # 若只需本机访问，可改回 host="127.0.0.1"。
+    uvicorn.run(app, host="0.0.0.0", port=8000)
