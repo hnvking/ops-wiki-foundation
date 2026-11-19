@@ -4,7 +4,7 @@
 ---
 title: "问题标题"
 type: faq                       # 文档类型（faq，不可修改）
-related_system: "所属系统名称"   # 如「简道云 PM 系统」，按系统归档到 docs/faqs/<系统名>/
+related_system: ""                  # 所属系统（选填），须为已登记系统名称，如「简道云 PM 系统」；按系统归档到 docs/faqs/<系统名>/
 severity: medium                # critical | high | medium | low | unknown（危急|高|中|低|未知）
 resolution: open                # open | in-progress | resolved | unknown（未解决|处理中|已解决|未知）
 last_reviewed: "YYYY-MM-DD"     # 日期格式：年-月-日

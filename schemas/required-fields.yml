@@ -141,11 +141,11 @@ document_types:
     required:
       - title
       - type
-      - related_system
       - severity
       - resolution
       - last_reviewed
     optional:
+      - related_system
       - description
       - owner
       - tags

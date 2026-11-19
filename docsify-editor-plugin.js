@@ -59,6 +59,11 @@
 
   var easyMDE = null;
 
+  // 已登记系统标题缓存（/api/systems 拉取），用于「所属系统」下拉选项
+  var __systemTitles = [];
+  // 编辑回填时若选项未就绪，暂存待恢复的所属系统值
+  var __pendingSystemValue = null;
+
   // -------------------------------------------------------------------------
   // 工具函数
   // -------------------------------------------------------------------------
@@ -221,7 +226,7 @@
     dependencies: { label: "依赖 dependencies", kind: "list", help: "依赖项，多个用英文逗号分隔（可选）" },
     tags: { label: "标签 tags", kind: "list", help: "标签，多个用英文逗号分隔（可选）" },
     related_services: { label: "相关服务 related_services", kind: "list", help: "相关服务，多个用英文逗号分隔（可选）" },
-    related_system: { label: "所属系统 related_system", kind: "text", required: true, help: "问题所属系统，如「简道云 PM 系统」" },
+    related_system: { label: "所属系统 related_system", kind: "select", required: false, options: [], help: "选择已登记的系统（选填），用于按系统归档" },
     resolution: {
       label: "解决状态 resolution", kind: "select", required: true,
       options: [{ v: "open", t: "open（未解决）" }, { v: "in-progress", t: "in-progress（处理中）" }, { v: "resolved", t: "resolved（已解决）" }, { v: "unknown", t: "unknown（未知）" }],
@@ -322,6 +327,29 @@
     return values;
   }
 
+  /**
+   * 拉取已登记系统标题，填充「所属系统」下拉选项。
+   * 首次渲染下拉时 options 为空，需异步补齐后更新对应 select。
+   */
+  async function loadSystems() {
+    try {
+      var data = await apiFetch("/api/systems");
+      var titles = Array.isArray(data) ? data : [];
+      if (!titles.length && __systemTitles.length) return; // 避免误清空
+      __systemTitles = titles;
+      var sel = document.querySelector('#wiki-meta-form [data-key="related_system"]');
+      if (sel) {
+        // 优先恢复待回填值；其次保持当前已选值
+        var cur = __pendingSystemValue !== null ? __pendingSystemValue : sel.value;
+        sel.innerHTML = "<option value=''></option>" + titles.map(function (t) {
+          return "<option value='" + t.replace(/'/g, "&#39;") + "'>" + t + "</option>";
+        }).join("");
+        sel.value = cur; // 保持已选值
+        __pendingSystemValue = null;
+      }
+    } catch (e) { /* 拉取失败时保持空选项，不阻塞表单 */ }
+  }
+
   /** 根据类型渲染表单字段区。所有字段直接平铺显示，不折叠。 */
   function renderMetaForm(type) {
     var container = document.getElementById("wiki-meta-form");
@@ -337,10 +365,13 @@
       var help = def.help ? "<div class='wiki-field-help'>" + def.help + "</div>" : "";
       var input = "";
       if (def.kind === "select") {
+        var opts = def.options || [];
+        // related_system 用已登记系统标题作为选项
+        if (key === "related_system") opts = __systemTitles.map(function (t) { return { v: t, t: t }; });
         input = "<select data-key='" + key + "'" + reqAttr + ">";
         input += "<option value=''></option>";
-        (def.options || []).forEach(function (o) {
-          input += "<option value='" + o.v + "'>" + o.t + "</option>";
+        opts.forEach(function (o) {
+          input += "<option value='" + o.v.replace(/'/g, "&#39;") + "'>" + o.t + "</option>";
         });
         input += "</select>";
       } else if (def.kind === "date") {
@@ -356,6 +387,10 @@
     // 回填 type 下拉当前值（新增/切换类型后保持选中，避免下拉被重置为空）
     var typeSel = container.querySelector('[data-key="type"]');
     if (typeSel && type) typeSel.value = type;
+    // related_system 选项异步补齐（首次渲染 options 为空，拉取后填充）
+    if (keys.indexOf("related_system") >= 0) {
+      loadSystems();
+    }
   }
 
   /** 把已解析的 frontmatter 回填到表单。 */
@@ -369,8 +404,13 @@
       if (Array.isArray(v)) v = v.join(", ");
       if (el.tagName === "SELECT") {
         // 逐项匹配 value（避免选项文本带中文导致不匹配）
+        var matched = false;
         for (var j = 0; j < el.options.length; j++) {
-          if (el.options[j].value === String(v)) { el.value = String(v); break; }
+          if (el.options[j].value === String(v)) { el.value = String(v); matched = true; break; }
+        }
+        // 所属系统选项尚未就绪（异步拉取中），暂存待恢复值
+        if (!matched && key === "related_system" && v !== "") {
+          __pendingSystemValue = String(v);
         }
       } else {
         el.value = String(v);
@@ -478,6 +518,7 @@
     routeInfo.mode = mode;
     currentFile = filePath || null;
     currentCategory = category || null;
+    __pendingSystemValue = null; // 每次打开重置暂存值
 
     var titleEl = document.getElementById("wiki-modal-title");
     var saveBtn = document.getElementById("wiki-btn-save");
@@ -495,9 +536,9 @@
     if (mode === "create") {
       titleEl.textContent = "➕ 新增页面" + (category ? "（" + category + "/）" : "");
       saveBtn.textContent = "✅ 提交";
-      newPathRow.style.display = "flex";
-      // 预填分类目录，用户补充文件名
-      newPathInput.value = category ? category + "/" : "";
+      // 路径自动生成：隐藏路径输入框，提交时按分类/系统/标题自动落库
+      newPathRow.style.display = "none";
+      newPathInput.value = "";
       // 渲染空表单（默认类型）
       window.__wikiMetaType = defaultType;
       renderMetaForm(defaultType);
@@ -614,29 +655,57 @@
     return (fm + "\n\n" + body).replace(/\n{3,}/g, "\n\n").trim() + "\n";
   }
 
-  /** 获取当前目标路径（新增模式从输入框取，编辑模式用 currentFile）。 */
-  function getTargetPath() {
-    if (routeInfo.mode === "create") {
-      return document.getElementById("wiki-new-path").value.trim();
-    }
-    return currentFile;
-  }
+  // -------------------------------------------------------------------------
+  // 自动生成目标路径（新增模式）
+  // -------------------------------------------------------------------------
+
+  // 文档类型 → 默认分类目录
+  var TYPE_CATEGORY = {
+    system: "systems",
+    service: "services",
+    integration: "integrations",
+    runbook: "runbooks",
+    faq: "faqs",
+  };
+
+  // 已知系统名称 → 系统子目录标识（faq 按系统归档）
+  var SYSTEM_DIR_MAP = {
+    "简道云 PM 系统": "jiandaoyun-pm",
+    "OA 系统": "oa",
+  };
 
   /**
-   * 校验新增页面的目标路径是否合法（必须以 .md 结尾、不能是纯目录）。
-   * 合法返回 null；不合法返回提示文案。
+   * 标题 → 文件名 slug：保留字母/数字，删除中文，其余替换为连字符。
+   * 例："简道云 PM 系统" → "pm"，"SSO 登录失败排查" → "sso"。
+   * 若结果为空则返回空串，由调用方兜底。
    */
-  function validateNewPath(path) {
-    if (!path) {
-      return "请先填写文件路径";
+  function slugify(str) {
+    return String(str || "")
+      .toLowerCase()
+      .replace(/[\u4e00-\u9fa5]+/g, "") // 删除中文
+      .replace(/[^a-z0-9]+/g, "-") // 其余非字母数字 → 连字符
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  /** 系统名称 → 子目录标识；未知系统回退到通用 slug 或 general。 */
+  function getSystemDir(name) {
+    if (!name) return "general";
+    if (SYSTEM_DIR_MAP[name]) return SYSTEM_DIR_MAP[name];
+    return slugify(name) || "general";
+  }
+
+  /** 根据类型/标题/所属系统自动生成保存路径（相对 docs/），如 faqs/jiandaoyun-pm/sso.md。 */
+  function getAutoPath() {
+    var values = collectFormValues();
+    var type = window.__wikiMetaType || values.type || "system";
+    var base = slugify(values.title) || ("page-" + Date.now());
+    // 目录以 type 为准（type 决定归属目录），其次才是当前分类
+    var cat = TYPE_CATEGORY[type] || currentCategory || "systems";
+    if (type === "faq") {
+      return cat + "/" + getSystemDir(values.related_system) + "/" + base + ".md";
     }
-    if (!/\.md$/i.test(path)) {
-      return "文件路径必须以 .md 结尾（例如 systems/my-page.md）";
-    }
-    if (path.replace(/\\/g, "/").split("/").pop().replace(/\.md$/i, "").trim() === "") {
-      return "文件路径缺少文件名（例如 systems/my-page.md）";
-    }
-    return null;
+    return cat + "/" + base + ".md";
   }
 
   // -------------------------------------------------------------------------
@@ -680,12 +749,7 @@
   async function validateNewContent() {
     var area = document.getElementById("wiki-validate-result");
     var btn = document.getElementById("wiki-btn-validate");
-    var path = getTargetPath();
-    var pathErr = validateNewPath(path);
-    if (pathErr) {
-      toast(pathErr, "warn");
-      return;
-    }
+    var path = getAutoPath();
     var metaErr = validateMetaForm();
     if (metaErr) {
       toast(metaErr, "warn");
@@ -710,15 +774,10 @@
     }
   }
 
-  /** 提交新增：先校验，通过后创建。 */
+  /** 提交新增：自动生成路径，先校验，通过后创建。 */
   async function submitNewFile() {
     var btn = document.getElementById("wiki-btn-save");
-    var path = getTargetPath();
-    var pathErr = validateNewPath(path);
-    if (pathErr) {
-      toast(pathErr, "warn");
-      return;
-    }
+    var path = getAutoPath();
     var metaErr = validateMetaForm();
     if (metaErr) {
       toast(metaErr, "warn");

@@ -298,6 +298,33 @@ def list_files() -> List[str]:
     return files
 
 
+@app.get("/api/systems", response_model=List[str])
+def list_systems() -> List[str]:
+    """列出 docs/systems/ 下所有已登记系统的 title 名称，供「所属系统」下拉选择。"""
+    systems_dir = DOCS_DIR / "systems"
+    if not systems_dir.exists():
+        return []
+    titles = []
+    for p in sorted(systems_dir.rglob("*.md")):
+        if p.name == "README.md" or not p.is_file():
+            continue
+        try:
+            content = p.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        title = extract_title(content)
+        if title and title != "新页面":
+            titles.append(title)
+    # 去重并保持顺序
+    seen = set()
+    unique = []
+    for t in titles:
+        if t not in seen:
+            seen.add(t)
+            unique.append(t)
+    return unique
+
+
 @app.get("/api/files/{file_path:path}")
 def read_file(file_path: str) -> dict:
     """读取指定 Markdown 文件，返回 {"path": ..., "content": ...}。"""
