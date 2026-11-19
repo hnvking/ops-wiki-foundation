@@ -1,10 +1,11 @@
 ---
 title: 简道云 PM 系统 SSO 登录失败
 type: faq
+related_form: system-access
 related_system: 简道云 PM 系统
 severity: high
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 用户通过企业微信 SSO 登录简道云 PM 系统时提示失败，经排查为企业微信应用回调地址未同步所致。
 owner: 数字化创新团队
 tags:
@@ -43,8 +44,8 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](docs/systems/jiandaoyun-pm-system.md) — 系统技术文档
-- [企业微信 SSO 集成](docs/integrations/jiandaoyun-wecom-sso.md) — SSO 集成说明
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [企业微信 SSO 集成](../../../integrations/jiandaoyun-wecom-sso.md) — SSO 集成说明
 
 ## 变更记录
 

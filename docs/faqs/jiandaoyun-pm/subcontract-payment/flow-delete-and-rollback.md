@@ -1,10 +1,11 @@
 ---
 title: 流程单删除与回退
 type: faq
+related_form: subcontract-payment
 related_system: 简道云 PM 系统
 severity: medium
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 分包付款补录流程缺少回退功能、流程单需删除或作废时的处理方式，涉及审批后单据内容的修改权限。
 owner: IT 运维组
 tags:
@@ -46,7 +47,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

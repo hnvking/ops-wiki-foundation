@@ -1,10 +1,11 @@
 ---
 title: 供应商扣罚单正负数逻辑
 type: faq
+related_form: supplier-penalty
 related_system: 简道云 PM 系统
 severity: low
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 供应商扣罚单（罚款单）中扣罚金额的正负数填写约定，系统按减法处理导致负数报错或计算错误。
 owner: IT 运维组
 tags:
@@ -43,7 +44,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

@@ -1,10 +1,11 @@
 ---
 title: 分包付款申请累计计量金额异常
 type: faq
+related_form: subcontract-payment
 related_system: 简道云 PM 系统
 severity: high
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 简道云「6.3.9分包付款申请」流程中「累计计量确认至本期(元)」字段因数据源包含已冲销暂估记录，导致累计金额虚高约8万元。
 owner: IT 运维组
 tags:
@@ -48,8 +49,8 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
-- [简道云 PM 系统故障应急手册](../../runbooks/jiandaoyun-pm-outage.md) — 数据异常类事件处置
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统故障应急手册](../../../runbooks/jiandaoyun-pm-outage.md) — 数据异常类事件处置
 
 ## 变更记录
 

@@ -1,10 +1,11 @@
 ---
 title: 税率字段配置与同步
 type: faq
+related_form: material-purchase
 related_system: 简道云 PM 系统
 severity: medium
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 材料采购订单、提料单、调拨单等表单的税率字段缺失或未同步，导致税率带不过对账流程、NC 计算错误。
 owner: IT 运维组
 tags:
@@ -48,7 +49,7 @@ PM 系统内多个表单的税率字段存在配置或同步问题：材料采�
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

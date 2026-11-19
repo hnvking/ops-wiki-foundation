@@ -63,6 +63,9 @@
   var __systemTitles = [];
   // 编辑回填时若选项未就绪，暂存待恢复的所属系统值
   var __pendingSystemValue = null;
+  // 当前系统的表单目录缓存（/api/forms/{systemSlug} 拉取）
+  var __formOptions = [];
+  var __pendingFormValue = null;
 
   // -------------------------------------------------------------------------
   // 工具函数
@@ -226,7 +229,8 @@
     dependencies: { label: "依赖 dependencies", kind: "list", help: "依赖项，多个用英文逗号分隔（可选）" },
     tags: { label: "标签 tags", kind: "list", help: "标签，多个用英文逗号分隔（可选）" },
     related_services: { label: "相关服务 related_services", kind: "list", help: "相关服务，多个用英文逗号分隔（可选）" },
-    related_system: { label: "所属系统 related_system", kind: "select", required: false, options: [], help: "选择已登记的系统（选填），用于按系统归档" },
+    related_system: { label: "所属系统 related_system", kind: "select", required: true, options: [], help: "选择已登记的系统，FAQ 按系统归档" },
+    related_form: { label: "所属表单 related_form", kind: "select", required: true, options: [], help: "选择该系统下已建好的表单目录；没有对应表单时先新建表单目录" },
     resolution: {
       label: "解决状态 resolution", kind: "select", required: true,
       options: [{ v: "open", t: "open（未解决）" }, { v: "in-progress", t: "in-progress（处理中）" }, { v: "resolved", t: "resolved（已解决）" }, { v: "unknown", t: "unknown（未知）" }],
@@ -240,7 +244,7 @@
     service: ["title", "type", "status", "owner", "last_reviewed", "description", "tier", "tags"],
     integration: ["title", "type", "status", "owner", "last_reviewed", "systems", "description", "direction", "protocol", "tags"],
     runbook: ["title", "type", "status", "owner", "last_reviewed", "severity", "description", "related_services", "tags"],
-    faq: ["title", "type", "related_system", "severity", "resolution", "last_reviewed", "description", "owner", "tags"],
+    faq: ["title", "type", "related_system", "related_form", "severity", "resolution", "last_reviewed", "description", "owner", "tags"],
   };
 
   /** 解析 Markdown 内容 → { fm: 对象, body: 正文 }。无 frontmatter 时 body 为全文。 */
@@ -286,7 +290,7 @@
       "description", "vendor", "hosting", "authentication", "tier",
       "systems", "direction", "protocol", "severity",
       "dependencies", "tags", "related_services",
-      "related_system", "resolution"];
+      "related_system", "related_form", "resolution"];
     var out = ["---"];
     keys.forEach(function (k) {
       var v = values[k];
@@ -346,8 +350,34 @@
         }).join("");
         sel.value = cur; // 保持已选值
         __pendingSystemValue = null;
+        if (cur) loadForms(cur);
       }
     } catch (e) { /* 拉取失败时保持空选项，不阻塞表单 */ }
+  }
+
+  /** 拉取某系统下已建的表单目录，填充「所属表单」下拉选项。 */
+  async function loadForms(systemTitle) {
+    var slug = systemTitle ? getSystemDir(systemTitle) : "";
+    if (slug) {
+      try {
+        var data = await apiFetch("/api/forms/" + encodeURIComponent(slug));
+        __formOptions = Array.isArray(data) ? data : [];
+      } catch (e) {
+        __formOptions = [];
+      }
+    } else {
+      __formOptions = [];
+    }
+
+    var sel = document.querySelector('#wiki-meta-form [data-key="related_form"]');
+    if (!sel) return;
+    var cur = __pendingFormValue !== null ? __pendingFormValue : sel.value;
+    sel.innerHTML = "<option value=''></option>" + __formOptions.map(function (o) {
+      return "<option value='" + o.value.replace(/'/g, "&#39;") + "'>" + o.label + "</option>";
+    }).join("");
+    var exists = __formOptions.some(function (o) { return o.value === cur; });
+    sel.value = exists ? cur : "";
+    __pendingFormValue = null;
   }
 
   /** 根据类型渲染表单字段区。所有字段直接平铺显示，不折叠。 */
@@ -368,6 +398,7 @@
         var opts = def.options || [];
         // related_system 用已登记系统标题作为选项
         if (key === "related_system") opts = __systemTitles.map(function (t) { return { v: t, t: t }; });
+        if (key === "related_form") opts = __formOptions.map(function (o) { return { v: o.value, t: o.label }; });
         input = "<select data-key='" + key + "'" + reqAttr + ">";
         input += "<option value=''></option>";
         opts.forEach(function (o) {
@@ -388,8 +419,18 @@
     var typeSel = container.querySelector('[data-key="type"]');
     if (typeSel && type) typeSel.value = type;
     // related_system 选项异步补齐（首次渲染 options 为空，拉取后填充）
+    var sysSel = container.querySelector('[data-key="related_system"]');
+    if (sysSel) {
+      sysSel.addEventListener("change", function () {
+        __pendingFormValue = null;
+        loadForms(sysSel.value);
+      });
+    }
     if (keys.indexOf("related_system") >= 0) {
       loadSystems();
+    }
+    if (keys.indexOf("related_form") >= 0 && sysSel && sysSel.value) {
+      loadForms(sysSel.value);
     }
   }
 
@@ -412,10 +453,16 @@
         if (!matched && key === "related_system" && v !== "") {
           __pendingSystemValue = String(v);
         }
+        if (!matched && key === "related_form" && v !== "") {
+          __pendingFormValue = String(v);
+        }
       } else {
         el.value = String(v);
       }
     }
+    // 表单选项依赖所属系统，系统回填后异步补齐表单下拉
+    var sysEl = document.querySelector('#wiki-meta-form [data-key="related_system"]');
+    if (sysEl && sysEl.value) loadForms(sysEl.value);
   }
 
 
@@ -519,6 +566,7 @@
     currentFile = filePath || null;
     currentCategory = category || null;
     __pendingSystemValue = null; // 每次打开重置暂存值
+    __pendingFormValue = null;
 
     var titleEl = document.getElementById("wiki-modal-title");
     var saveBtn = document.getElementById("wiki-btn-save");
@@ -695,7 +743,7 @@
     return slugify(name) || "general";
   }
 
-  /** 根据类型/标题/所属系统自动生成保存路径（相对 docs/），如 faqs/jiandaoyun-pm/sso.md。 */
+  /** 根据类型/标题/所属系统/所属表单自动生成保存路径，如 faqs/jiandaoyun-pm/system-access/sso.md。 */
   function getAutoPath() {
     var values = collectFormValues();
     var type = window.__wikiMetaType || values.type || "system";
@@ -703,7 +751,8 @@
     // 目录以 type 为准（type 决定归属目录），其次才是当前分类
     var cat = TYPE_CATEGORY[type] || currentCategory || "systems";
     if (type === "faq") {
-      return cat + "/" + getSystemDir(values.related_system) + "/" + base + ".md";
+      var form = values.related_form || "general";
+      return cat + "/" + getSystemDir(values.related_system) + "/" + form + "/" + base + ".md";
     }
     return cat + "/" + base + ".md";
   }

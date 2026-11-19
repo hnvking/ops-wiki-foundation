@@ -1,10 +1,11 @@
 ---
 title: 物资超库存
 type: faq
+related_form: material-inventory
 related_system: 简道云 PM 系统
 severity: low
 resolution: in-progress
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 物资库存出现超库存情况，需业务方协助排查库存数据来源。
 owner: IT 运维组
 tags:
@@ -42,7 +43,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

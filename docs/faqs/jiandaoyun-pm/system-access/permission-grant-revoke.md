@@ -1,10 +1,11 @@
 ---
 title: 权限开通与回收
 type: faq
+related_form: system-access
 related_system: 简道云 PM 系统
 severity: medium
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 简道云 PM 系统各类查看、编辑、导入、发起权限的开通与回收，涉及权限临时开放、角色配置及流程表单编辑权限调整。
 owner: IT 运维组
 tags:
@@ -47,7 +48,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

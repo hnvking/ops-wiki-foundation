@@ -73,16 +73,6 @@ def resolve_docs_path(file_path: str) -> Path:
 # 导航注册辅助：新页面创建成功后，自动把链接加进 _sidebar.md 和分类 README
 # ---------------------------------------------------------------------------
 
-# 分类目录名 → 侧边栏展示名（显示名含 "系统 Systems" 这类中英文）
-CATEGORY_LABELS = {
-    "systems": "系统 Systems",
-    "services": "服务 Services",
-    "integrations": "集成 Integrations",
-    "runbooks": "应急手册 Runbooks",
-    "faqs": "运维问题 Faqs",
-}
-
-
 def extract_title(content: str) -> str:
     """从 Markdown frontmatter 中提取 title 字段；取不到则回退到第一个 # 标题。"""
     m = re.search(r"^---\s*\n(.*?)\n---", content, re.S)
@@ -97,11 +87,93 @@ def extract_title(content: str) -> str:
     return "新页面"
 
 
+CN_NUMERALS = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"]
+
+
+def strip_sidebar_number(text: str) -> str:
+    """去掉侧边栏链接文字上已有的编号，只保留标题本身。"""
+    return re.sub(
+        r"^(?:[零一二三四五六七八九十]+、|\d+(?:\.\d+)*[、.]?\s+)", "", text
+    ).strip()
+
+
+def renumber_sidebar() -> None:
+    """按缩进层级重排侧边栏编号：顶层「一、」，子层「1.1」「1.1.1」。"""
+    sidebar_path = BASE_DIR / "_sidebar.md"
+    if not sidebar_path.exists():
+        return
+    try:
+        lines = sidebar_path.read_text(encoding="utf-8").split("\n")
+    except OSError:
+        return
+
+    counters: dict[int, int] = {}
+    stack: list[tuple[int, str]] = []
+    out = []
+    link_re = re.compile(r"^(\s*)-\s+\[([^\]]+)\]\(([^)]+)\)")
+
+    for line in lines:
+        match = link_re.match(line)
+        if not match:
+            out.append(line)
+            continue
+
+        indent = len(match.group(1))
+        title = strip_sidebar_number(match.group(2))
+        target = match.group(3)
+
+        # 首页不参与编号，并重置计数器
+        if target == "/":
+            out.append(line)
+            counters = {}
+            stack = []
+            continue
+
+        # 层级变浅时清理更深层计数器；每层各自计数
+        for key in list(counters):
+            if key > indent:
+                del counters[key]
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+
+        if indent == 0 or not stack:
+            counters[0] = counters.get(0, 0) + 1
+            index = counters[0]
+            label = CN_NUMERALS[index] if index < len(CN_NUMERALS) else str(index)
+            new_title = f"{label}、{title}"
+            stack = [(0, str(index))]
+        else:
+            parent_prefix = stack[-1][1]
+            counters[indent] = counters.get(indent, 0) + 1
+            number = f"{parent_prefix}.{counters[indent]}"
+            new_title = f"{number} {title}"
+            stack.append((indent, number))
+
+        out.append(f"{' ' * indent}- [{new_title}]({target})")
+
+    try:
+        sidebar_path.write_text("\n".join(out), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def sidebar_parent_target(file_path: str) -> str:
+    """根据文档路径找到它在侧边栏中的父级索引页链接。"""
+    parts = file_path.split("/")
+    category = parts[0]
+    if category == "faqs" and len(parts) >= 4:
+        # faqs/<系统>/<表单>/<问题>.md → 表单 README
+        return "docs/" + "/".join(parts[:-1]) + "/README.md"
+    if category == "faqs" and len(parts) == 3:
+        return f"docs/faqs/{parts[1]}/README.md"
+    return f"docs/{category}/README.md"
+
+
 def register_new_page(file_path: str, content: str) -> None:
     """
     把新创建的页面注册进导航：
-      1. _sidebar.md 的分类父项下追加子链接
-      2. docs/<category>/README.md 的「示例」区追加链接
+      1. _sidebar.md 中按其父级索引页插入子链接，随后整体重排编号
+      2. 对应 README.md 的索引区追加链接（FAQ 追加到表单 README）
 
     file_path 为相对 docs/ 的路径（如 systems/foo.md），content 为新文件全文。
     """
@@ -112,83 +184,86 @@ def register_new_page(file_path: str, content: str) -> None:
     category = parts[0]
     filename = parts[-1]
     title = extract_title(content)
+    doc_link = f"docs/{file_path}"
 
     # ---- 1. 更新 _sidebar.md ----
     sidebar_path = BASE_DIR / "_sidebar.md"
-    if sidebar_path.exists():
-        try:
-            sidebar_text = sidebar_path.read_text(encoding="utf-8")
-        except OSError:
-            sidebar_text = ""
-    else:
+    try:
+        sidebar_text = sidebar_path.read_text(encoding="utf-8") if sidebar_path.exists() else ""
+    except OSError:
         sidebar_text = ""
 
-    # 已存在该链接则跳过
-    if filename not in sidebar_text:
-        label = CATEGORY_LABELS.get(category, category)
-        parent_prefix = f"- [{label}](docs/{category}/README.md)"
-        new_line = f"  - [{title}](docs/{file_path})"
-        if parent_prefix in sidebar_text:
-            # 在父项行之后插入子链接
-            lines = sidebar_text.split("\n")
+    if f"]({doc_link})" not in sidebar_text:
+        parent_target = sidebar_parent_target(file_path)
+        lines = sidebar_text.split("\n")
+        parent_index = None
+        for i, line in enumerate(lines):
+            if line.strip().endswith(f"]({parent_target})"):
+                parent_index = i
+                break
+
+        if parent_index is None:
+            # 父级不存在时退化为分类索引页，仍找不到就放到末尾
+            parent_target = f"docs/{category}/README.md"
             for i, line in enumerate(lines):
-                if line.strip() == parent_prefix.strip():
-                    # 跳过父项后已有的子项，找到插入位置
-                    insert_at = i + 1
-                    while insert_at < len(lines) and lines[insert_at].startswith("  - "):
-                        insert_at += 1
-                    lines.insert(insert_at, new_line)
+                if line.strip().endswith(f"]({parent_target})"):
+                    parent_index = i
                     break
-            sidebar_text = "\n".join(lines)
+
+        if parent_index is None:
+            child_indent = 2
+            insert_at = len(lines)
         else:
-            # 找不到父项，追加到末尾
-            if sidebar_text and not sidebar_text.endswith("\n"):
-                sidebar_text += "\n"
-            sidebar_text += new_line + "\n"
+            parent_indent = len(lines[parent_index]) - len(lines[parent_index].lstrip(" "))
+            child_indent = parent_indent + 2
+            insert_at = parent_index + 1
+            # 跳过父项下的整棵子树，插到末尾
+            while insert_at < len(lines):
+                current = lines[insert_at]
+                current_indent = len(current) - len(current.lstrip(" "))
+                if current.strip() and current_indent > parent_indent:
+                    insert_at += 1
+                else:
+                    break
+
+        lines.insert(insert_at, f"{' ' * child_indent}- [{title}]({doc_link})")
         try:
-            sidebar_path.write_text(sidebar_text, encoding="utf-8")
+            sidebar_path.write_text("\n".join(lines), encoding="utf-8")
         except OSError:
             pass
+        renumber_sidebar()
 
-    # ---- 2. 更新 docs/<category>/README.md ----
-    readme_path = DOCS_DIR / category / "README.md"
-    if readme_path.exists():
-        try:
-            readme_text = readme_path.read_text(encoding="utf-8")
-        except OSError:
-            readme_text = ""
-    else:
+    # ---- 2. 更新对应的 README.md ----
+    readme_path = DOCS_DIR.joinpath(*parts[:-1], "README.md")
+    category_readme = DOCS_DIR / category / "README.md"
+    if not readme_path.exists():
+        readme_path = category_readme
+    nested = readme_path.parent != category_readme.parent
+
+    try:
+        readme_text = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
+    except OSError:
         readme_text = ""
 
-    rel_link = f"docs/{file_path}"
     if filename not in readme_text:
-        entry = f"- [{filename}]({rel_link}) — {title}"
-        if "## 示例" in readme_text:
-            # 在「示例」区末尾追加
-            lines = readme_text.split("\n")
-            idx = None
-            for i, line in enumerate(lines):
-                if line.strip() == "## 示例":
-                    idx = i
-                    break
-            if idx is not None:
-                insert_at = idx + 1
-                while insert_at < len(lines) and (
-                    not lines[insert_at].startswith("#") or lines[insert_at].strip() == ""
-                ):
-                    # 停在下一个 ## 标题前
-                    if lines[insert_at].strip().startswith("## ") and lines[insert_at].strip() != "## 示例":
-                        break
-                    insert_at += 1
-                # 往回退，插到下一个 ## 前（若正好在下一个标题上）
-                lines.insert(insert_at, entry)
-                readme_text = "\n".join(lines)
-            else:
-                readme_text += "\n" + entry + "\n"
+        rel_link = filename if nested else doc_link
+        entry = f"- [{title}]({rel_link})" if nested else f"- [{filename}]({rel_link}) — {title}"
+        section = next(
+            (s for s in ("## FAQ 索引", "## 示例", "## 页面") if s in readme_text),
+            None,
+        )
+        if section is None:
+            readme_text = readme_text.rstrip("\n") + f"\n\n## 页面\n\n{entry}\n"
         else:
-            if readme_text and not readme_text.endswith("\n"):
-                readme_text += "\n"
-            readme_text += "\n## 页面\n\n" + entry + "\n"
+            lines = readme_text.split("\n")
+            idx = next(i for i, line in enumerate(lines) if line.strip() == section)
+            insert_at = idx + 1
+            while insert_at < len(lines) and not lines[insert_at].strip().startswith("## "):
+                insert_at += 1
+            while insert_at > idx + 1 and not lines[insert_at - 1].strip():
+                insert_at -= 1
+            lines.insert(insert_at, entry)
+            readme_text = "\n".join(lines)
         try:
             readme_path.write_text(readme_text, encoding="utf-8")
         except OSError:
@@ -197,18 +272,15 @@ def register_new_page(file_path: str, content: str) -> None:
 
 def unregister_page(file_path: str) -> None:
     """
-    从导航中移除指定页面的链接（删除文档时调用）：
-      1. _sidebar.md 中删除指向该页面的子链接
-      2. docs/<category>/README.md 的「示例」区删除对应条目
-
+    从导航中移除指定页面的链接（删除文档时调用），并重排侧边栏编号。
     file_path 为相对 docs/ 的路径（如 systems/foo.md）。
-    只移除精确匹配 `docs/<file_path>` 链接的行，不影响其它链接。
     """
     file_path = file_path.replace("\\", "/").lstrip("/")
     parts = file_path.split("/")
     if len(parts) < 2:
-        return  # 不在分类子目录内，不处理
+        return
     category = parts[0]
+    filename = parts[-1]
     link_target = f"docs/{file_path}"
 
     # ---- 1. 从 _sidebar.md 移除 ----
@@ -218,28 +290,34 @@ def unregister_page(file_path: str) -> None:
             lines = sidebar_path.read_text(encoding="utf-8").split("\n")
         except OSError:
             lines = []
-        new_lines = [ln for ln in lines if link_target not in ln]
+        new_lines = [ln for ln in lines if f"]({link_target})" not in ln]
         if len(new_lines) != len(lines):
             try:
-                sidebar_path.write_text(
-                    "\n".join(new_lines).rstrip("\n") + "\n", encoding="utf-8"
-                )
+                sidebar_path.write_text("\n".join(new_lines), encoding="utf-8")
             except OSError:
                 pass
+            renumber_sidebar()
 
-    # ---- 2. 从 docs/<category>/README.md 移除 ----
-    readme_path = DOCS_DIR / category / "README.md"
-    if readme_path.exists():
+    # ---- 2. 从对应 README.md 移除 ----
+    readme_path = DOCS_DIR.joinpath(*parts[:-1], "README.md")
+    category_readme = DOCS_DIR / category / "README.md"
+    candidates = [readme_path]
+    if readme_path != category_readme:
+        candidates.append(category_readme)
+    for path in candidates:
+        if not path.exists():
+            continue
         try:
-            lines = readme_path.read_text(encoding="utf-8").split("\n")
+            lines = path.read_text(encoding="utf-8").split("\n")
         except OSError:
-            lines = []
-        new_lines = [ln for ln in lines if link_target not in ln]
+            continue
+        new_lines = [
+            ln for ln in lines
+            if link_target not in ln and not (ln.strip().startswith("- [") and f"]({filename})" in ln)
+        ]
         if len(new_lines) != len(lines):
             try:
-                readme_path.write_text(
-                    "\n".join(new_lines).rstrip("\n") + "\n", encoding="utf-8"
-                )
+                path.write_text("\n".join(new_lines), encoding="utf-8")
             except OSError:
                 pass
 
@@ -323,6 +401,31 @@ def list_systems() -> List[str]:
             seen.add(t)
             unique.append(t)
     return unique
+
+
+@app.get("/api/forms/{system_slug}")
+def list_forms(system_slug: str) -> list[dict]:
+    """列出某系统下已建的表单目录，供 FAQ「所属表单」下拉选择。"""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", system_slug):
+        raise HTTPException(status_code=400, detail="系统标识不合法")
+    system_dir = DOCS_DIR / "faqs" / system_slug
+    if not system_dir.exists():
+        return []
+
+    forms = []
+    for form_dir in sorted(p for p in system_dir.iterdir() if p.is_dir()):
+        label = form_dir.name
+        readme = form_dir / "README.md"
+        if readme.exists():
+            try:
+                text = readme.read_text(encoding="utf-8")
+                match = re.search(r"^#\s+(.+)$", text, re.M)
+                if match:
+                    label = match.group(1).strip()
+            except (OSError, UnicodeDecodeError):
+                pass
+        forms.append({"value": form_dir.name, "label": label})
+    return forms
 
 
 @app.get("/api/files/{file_path:path}")

@@ -1,10 +1,11 @@
 ---
 title: 材料采购合同数据导入
 type: faq
+related_form: material-purchase
 related_system: 简道云 PM 系统
 severity: low
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 材料采购合同、集采合同数据导入的模板准备、字段选择与培训，乙方单位信息卡点处理。
 owner: IT 运维组
 tags:
@@ -48,7 +49,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

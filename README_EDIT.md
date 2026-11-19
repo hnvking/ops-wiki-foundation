@@ -51,6 +51,8 @@ uvicorn backend.main:app --reload --port 8000
 | GET  | `/api/files/{path}` | 读取指定 Markdown 内容 |
 | PUT  | `/api/files/{path}` | 写入指定 Markdown 内容 |
 | POST | `/api/validate` | 运行 `scripts/validate_docs.py` 并返回结果 |
+| GET  | `/api/systems` | 列出已登记系统标题（FAQ 所属系统下拉） |
+| GET  | `/api/forms/{system_slug}` | 列出某系统下已建的表单目录（FAQ 所属表单下拉） |
 | GET  | `/api/health` | 健康检查 |
 
 所有文件读写均通过 `resolve()` + `is_relative_to(DOCS_DIR)` 校验，拒绝路径遍历（返回 403）。
@@ -68,3 +70,4 @@ uvicorn backend.main:app --reload --port 8000
 - 路径安全：`vm.route.file` 可能带前导 `/`，插件已去除；后端用 `pathlib` 处理跨平台路径。
 - 校验脚本输出编码：后端以 `encoding="utf-8", errors="replace"` 运行，避免 Windows `gbk` 解码问题。
 - EasyMDE 通过 CDN（jsdelivr）加载，需联网；离线部署请自行下载到本地 `assets/` 并替换引用。
+- FAQ 必须按 `faqs/<系统>/<表单>/<问题>.md` 归档；新增/删除页面后会自动更新 `_sidebar.md` 并按层级重排编号（顶层「一、」，子层「1.1」「1.1.1」）。

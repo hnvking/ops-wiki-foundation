@@ -298,6 +298,29 @@
     .wiki-toast-error { background: #dc3545; }
     .wiki-toast-info { background: #17a2b8; }
     .wiki-toast-warn { background: #ffc107; color: #212529; }
+
+    /* ============ 侧边栏目录树：点击展开 / 收起 ============ */
+    .sidebar li.wiki-tree-parent { position: relative; }
+    .sidebar li.wiki-tree-parent > .wiki-tree-toggle {
+      position: absolute;
+      left: -16px;
+      top: 2px;
+      width: 16px;
+      height: 22px;
+      padding: 0;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: #7f8c8d;
+      font-size: 12px;
+      line-height: 22px;
+      text-align: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sidebar li.wiki-tree-parent > .wiki-tree-toggle::after { content: "▾"; }
+    .sidebar li.wiki-tree-parent.wiki-tree-collapsed > .wiki-tree-toggle::after { content: "▸"; }
+    .sidebar li.wiki-tree-parent.wiki-tree-collapsed > ul { display: none; }
   </style>
 </head>
 <body>
@@ -337,6 +360,83 @@
     })();
   </script>
   <script src="assets/docsify/docsify.min.js"></script>
+  <script>
+    // 插件：侧边栏目录树点击展开 / 收起，折叠状态保存在 localStorage。
+    (function () {
+      var STORAGE_KEY = "wikiSidebarCollapsed";
+
+      function readCollapsed() {
+        try {
+          var value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+          return Array.isArray(value) ? value : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function writeCollapsed(list) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
+      }
+
+      function toggle(li, link, collapsed) {
+        var collapsedNow = !li.classList.contains("wiki-tree-collapsed");
+        li.classList.toggle("wiki-tree-collapsed", collapsedNow);
+        var key = link.getAttribute("href") || link.textContent;
+        var index = collapsed.indexOf(key);
+        if (collapsedNow && index < 0) collapsed.push(key);
+        if (!collapsedNow && index >= 0) collapsed.splice(index, 1);
+        writeCollapsed(collapsed);
+      }
+
+      function decorate() {
+        var nav = document.querySelector(".sidebar-nav");
+        if (!nav) return;
+        var collapsed = readCollapsed();
+        var items = nav.querySelectorAll("li");
+
+        for (var i = 0; i < items.length; i++) {
+          var li = items[i];
+          var childList = null;
+          var link = null;
+          for (var j = 0; j < li.children.length; j++) {
+            var child = li.children[j];
+            if (child.tagName === "UL" && !child.classList.contains("app-sub-sidebar")) childList = child;
+            if (child.tagName === "A" && !link) link = child;
+          }
+          if (!childList || !link) continue;
+
+          if (!li.classList.contains("wiki-tree-parent")) {
+            li.classList.add("wiki-tree-parent");
+            var button = document.createElement("button");
+            button.type = "button";
+            button.className = "wiki-tree-toggle";
+            button.setAttribute("aria-label", "展开或收起子目录");
+            button.addEventListener("click", function (event) {
+              event.preventDefault();
+              event.stopPropagation();
+              var parent = this.parentNode;
+              var parentLink = parent.querySelector(":scope > a");
+              toggle(parent, parentLink, collapsed);
+            });
+            li.insertBefore(button, li.firstChild);
+
+            // 点击父级链接：照常跳转，同时切换展开状态（状态会持久化）
+            link.addEventListener("click", function () {
+              var parent = this.parentNode;
+              setTimeout(function () { toggle(parent, parent.querySelector(":scope > a"), collapsed); }, 0);
+            });
+          }
+
+          var key = link.getAttribute("href") || link.textContent;
+          li.classList.toggle("wiki-tree-collapsed", collapsed.indexOf(key) >= 0);
+        }
+      }
+
+      window.$docsify.plugins = (window.$docsify.plugins || []).concat([
+        function (hook) { hook.doneEach(decorate); }
+      ]);
+    })();
+  </script>
   <!-- EasyMDE 编辑器（本地，避免外网 CDN 依赖） -->
   <script src="assets/easymde/easymde.min.js"></script>
   <!-- 在线编辑/校验插件：需在 docsify 之后加载，通过 $docsify.plugins 注册。

@@ -1,10 +1,11 @@
 ---
 title: NC 接口同步失败
 type: faq
+related_form: nc-integration
 related_system: 简道云 PM 系统
 severity: high
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 简道云 PM 系统单据同步至 NC 系统失败，常见原因为供应商编码不一致、库存编码不匹配、含税单价未填写、NC 缺少单位等。
 owner: IT 运维组
 tags:
@@ -52,8 +53,8 @@ PM 系统内各类单据（入库单、出库单、发票登记、项目间材�
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
-- [简道云 PM 系统故障应急手册](../../runbooks/jiandaoyun-pm-outage.md) — 数据异常类事件处置
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统故障应急手册](../../../runbooks/jiandaoyun-pm-outage.md) — 数据异常类事件处置
 
 ## 变更记录
 

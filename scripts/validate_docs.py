@@ -11,6 +11,7 @@ Checks performed:
     - Date fields match YYYY-MM-DD format.
     - List fields are non-empty.
     - Files are in the correct directory for their document type.
+    - FAQ files follow docs/faqs/<system>/<form>/<page>.md and related_form matches the form directory.
 
 Usage:
     python3 scripts/validate_docs.py
@@ -134,15 +135,34 @@ def validate_file(filepath, type_map, repo_root):
                 errors.append(f"Field '{field}' is an empty list.")
 
     # --- Check file is in the correct directory ---
+    rel_path = filepath.relative_to(repo_root)
     expected_dir = config.get("directory")
     if expected_dir:
-        rel_path = filepath.relative_to(repo_root)
         expected_prefix = Path(expected_dir)
         if not str(rel_path).startswith(str(expected_prefix)):
             errors.append(
                 f"File is in '{rel_path.parent}' but type '{doc_type}' "
                 f"should be in '{expected_dir}'."
             )
+
+    # --- FAQ 必须按 系统 → 表单 两级归档 ---
+    # 路径固定：docs/faqs/<系统标识>/<表单标识>/<问题>.md
+    # related_form 必须与所在表单目录名一致，避免问题散落在错误的表单下。
+    if doc_type == "faq":
+        parts = rel_path.parts
+        if len(parts) != 5 or parts[0] != "docs" or parts[1] != "faqs":
+            errors.append(
+                "FAQ 必须放在 docs/faqs/<系统标识>/<表单标识>/<问题>.md，"
+                f"当前路径为 '{rel_path.as_posix()}'."
+            )
+        else:
+            form_dir = parts[3]
+            related_form = frontmatter.get("related_form")
+            if related_form is not None and str(related_form).strip() != form_dir:
+                errors.append(
+                    f"related_form is '{related_form}' but the FAQ is in "
+                    f"form directory '{form_dir}'."
+                )
 
     return errors
 

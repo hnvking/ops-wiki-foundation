@@ -1,10 +1,11 @@
 ---
 title: 附加费自动带出
 type: faq
+related_form: material-receipt
 related_system: 简道云 PM 系统
 severity: low
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 入库单选择附加费时不能自动带出价格，需确认附加费金额的带出来源与流程配置。
 owner: IT 运维组
 tags:
@@ -44,7 +45,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

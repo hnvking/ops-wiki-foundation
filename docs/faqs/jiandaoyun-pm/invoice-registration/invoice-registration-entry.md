@@ -1,10 +1,11 @@
 ---
 title: 发票登记与进项票流程
 type: faq
+related_form: invoice-registration
 related_system: 简道云 PM 系统
 severity: medium
 resolution: resolved
-last_reviewed: 2026-11-18
+last_reviewed: 2026-11-19
 description: 发票登记记录重复、同步 NC 失败、无法引用对账流程，以及进项票登记表单需调整为流程表单由财务复核。
 owner: IT 运维组
 tags:
@@ -46,7 +47,7 @@ tags:
 
 ## 相关页面
 
-- [简道云 PM 系统](../../systems/jiandaoyun-pm-system.md) — 系统技术文档
+- [简道云 PM 系统](../../../systems/jiandaoyun-pm-system.md) — 系统技术文档
 
 ## 变更记录
 

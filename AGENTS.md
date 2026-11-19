@@ -38,6 +38,7 @@ scripts/lib/          — Shared Python utilities (frontmatter parsing, etc.)
 - Field values must conform to the `field_constraints` defined in the schema (e.g., `status` must be one of `active`, `deprecated`, `draft`, `needs-review`).
 - Use the templates in `templates/` as the starting point for new pages.
 - Do not invent new frontmatter fields without updating the schema.
+- FAQ pages must live at `docs/faqs/<system>/<form>/<page>.md`; `related_form` is required and must match the form directory name. Never place a FAQ directly in `docs/faqs/` or a system root.
 
 ### Markdown Style
 

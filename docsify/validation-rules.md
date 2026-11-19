@@ -3,7 +3,7 @@ title: "校验规则"
 type: system
 status: draft
 owner: "知识库维护团队"
-last_reviewed: "2026-11-17"
+last_reviewed: "2026-11-19"
 description: "本文档说明运维知识库文档校验（validate_docs.py）所检查的具体规则，帮助新增/编辑页面时一次通过校验。"
 tags:
   - 校验
@@ -49,6 +49,7 @@ last_reviewed: "2026-11-17"
 | `service` | `docs/services/` | IT 服务文档 |
 | `integration` | `docs/integrations/` | 系统间集成文档 |
 | `runbook` | `docs/runbooks/` | 应急手册 |
+| `faq` | `docs/faqs/<系统>/<表单>/` | 运维问题（必须按系统→表单两级归档） |
 
 - 缺少 `type` → 报错 `Missing 'type' field in frontmatter.`
 - `type` 不是上述合法值 → 报错 `Unknown document type`.
@@ -62,12 +63,26 @@ last_reviewed: "2026-11-17"
 | `system` / `service` / `runbook` | `title`、`type`、`status`、`owner`、`last_reviewed` |
 | `integration` | 上述全部 **+ `systems`**（列表） |
 | `runbook` | 上述全部 **+ `severity`** |
+| `faq` | `title`、`type`、`related_system`、`related_form`、`severity`、`resolution`、`last_reviewed` |
 
 - 字段缺失 → 报错 `Missing required field: '<field>'`
 - 字符串为空 → 报错 `Required field '<field>' is empty.`
 - 列表为空 → 报错 `Required field '<field>' is an empty list.`
 
-### 4. 枚举字段取值必须合法
+### 4. FAQ 必须按「系统 → 表单」归档
+
+`faq` 类型除通用字段外，还有两条硬规则：
+
+1. 路径必须是 `docs/faqs/<系统标识>/<表单标识>/<问题>.md`，不允许直接放在 `docs/faqs/` 或系统目录根部；
+2. frontmatter 的 `related_form` 必须等于所在表单目录名。
+
+例如系统 `jiandaoyun-pm` 下表单 `system-access` 的问题，应保存为 `docs/faqs/jiandaoyun-pm/system-access/sso-login-fail.md`，并填写 `related_form: system-access`。
+
+新增问题时，「所属系统」和「所属表单」下拉会自动列出已建好的目录，并据此生成保存路径；没有对应表单时，先建表单目录和 `README.md` 再写问题。
+
+违反时报错 `FAQ 必须放在 docs/faqs/<系统标识>/<表单标识>/<问题>.md` 或 `related_form is ... but the FAQ is in form directory ...`。
+
+### 5. 枚举字段取值必须合法
 
 某些字段的值只能从固定集合中选，否则报错。
 
@@ -115,20 +130,20 @@ critical | high | medium | low | unknown
 
 - 非法值 → 报错 `Field '<field>' has invalid value '<value>'. Allowed: ...`
 
-### 5. 日期字段必须符合 YYYY-MM-DD
+### 6. 日期字段必须符合 YYYY-MM-DD
 
 `last_reviewed` 必须写成 `YYYY-MM-DD` 格式（如 `2026-11-17`）。
 
 - 不符合 → 报错 `Field '<field>' has invalid date format '<value>'. Expected: YYYY-MM-DD`
 
-### 6. 列表字段必须是非空数组
+### 7. 列表字段必须是非空数组
 
 `systems`（integration）、`dependencies`、`tags`、`related_services` 等字段若是列表：
 
 - 不是列表类型 → 报错 `Field '<field>' should be a list, got <type>.`
 - 空列表 → 报错 `Field '<field>' is an empty list.`
 
-### 7. 文件必须放在正确目录
+### 8. 文件必须放在正确目录
 
 文档的 `type` 必须与其所在目录匹配（见第 2 节表格）。例如：
 

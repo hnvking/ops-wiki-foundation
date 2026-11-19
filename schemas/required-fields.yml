@@ -135,17 +135,18 @@ document_types:
         values: [critical, high, medium, low, unknown]
 
   faq:
-    description: "Operational FAQ entries grouped by system"
+    description: "Operational FAQ entries grouped by system and form: docs/faqs/<system>/<form>/<page>.md"
     directory: "docs/faqs"
     template: "templates/faq-page.md"
     required:
       - title
       - type
+      - related_system
+      - related_form
       - severity
       - resolution
       - last_reviewed
     optional:
-      - related_system
       - description
       - owner
       - tags
