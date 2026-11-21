@@ -150,6 +150,9 @@ document_types:
       - description
       - owner
       - tags
+      - source_card_id           # 企微知识卡编号，用于溯源到采集表格
+      - content_hash             # 表格关键字段哈希，用于检测表格侧变更
+      - generated_hash           # 生成时正文哈希，用于检测人工修改（冲突保护）
     field_constraints:
       last_reviewed:
         type: date
