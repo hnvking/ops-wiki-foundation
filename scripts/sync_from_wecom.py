@@ -4,7 +4,10 @@
 Design goals (see README "Overall Architecture" section):
   - Primary key = 卡片编号 (source_card_id), never fuzzy text matching.
   - Gate = card's 状态 is 已发布/已审核 (approved only). C-class / unpublished skipped.
-  - content_hash: hash of the table-side key fields -> detects table changes.
+  - content_hash: if 聊天原文 (raw chat evidence) is present, hash THAT (raw-first),
+    else fall back to the legacy key fields (so the 153 existing docs keep baseline).
+    Raw-first means: once the original conversation is corrected/expanded, a reprocess
+    is triggered even if the derived fields stayed the same.
   - generated_hash: hash of the body at generation time -> detects human edits.
     If a doc's current body differs from generated_hash, a human edited it ->
     SKIP and report a conflict; NEVER overwrite (the Git repo is the
@@ -230,11 +233,32 @@ KEY_FIELDS = ["问题原话", "处理结果一句话", "业务规则与判断逻
               "注意事项/风险提示", "根因分类", "关键词/摘要", "标签", "适用系统/流程",
               "影响范围说明", "影响范围分类", "涉及表单名称", "处理日期"]
 
+RAW_FIELD = "聊天原文"  # raw, immutable chat evidence; the authoritative source for reprocessing
+
+
+def raw_text_of(r):
+    """Return the raw chat transcript for a card (may be empty for legacy cards)."""
+    v = r.get(RAW_FIELD)
+    if isinstance(v, list):  # defensive: text normally returns str
+        return "\n".join(str(x) for x in v)
+    return str(v or "").strip()
+
 
 def content_hash_of(r):
-    payload = {k: r.get(k) for k in KEY_FIELDS}
-    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16]
+    """Raw-first hashing.
+
+    If the card carries 聊天原文 (new pattern), hash the raw transcript itself:
+    any fix/addition to the original evidence triggers a reprocess, regardless of
+    whether the derived (AI-summarised) fields changed. Otherwise fall back to the
+    legacy key-field hash so the 153 already-basedlined docs stay unchanged.
+    """
+    raw = raw_text_of(r)
+    if raw:
+        payload = {"__raw__": raw}
+    else:
+        payload = {k: r.get(k) for k in KEY_FIELDS}
+    serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()[:16]
 
 
 def body_hash_of(body):
