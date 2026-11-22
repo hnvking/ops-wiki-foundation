@@ -12,6 +12,7 @@ source_card_id: 232
 tags:
   - 入库
   - NC同步
+problem_type: 缺陷与数据问题
 content_hash: 6882c72f66d88446
 generated_hash: d99fabe98de899e7
 ---

@@ -13,6 +13,7 @@ tags:
   - 对账
   - 采购订单
   - 入库
+problem_type: 配置与报表
 content_hash: 85e9ebf277df574f
 generated_hash: c379495e485adee9
 ---

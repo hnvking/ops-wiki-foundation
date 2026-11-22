@@ -12,6 +12,7 @@ source_card_id: 234
 tags:
   - 单价
   - 采购订单
+problem_type: 缺陷与数据问题
 content_hash: c869b1ffe296e230
 generated_hash: 29b8553f29e5a4ac
 ---

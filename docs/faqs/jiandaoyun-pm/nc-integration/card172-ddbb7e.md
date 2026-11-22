@@ -13,6 +13,7 @@ tags:
   - 入库
   - 对账
   - NC同步
+problem_type: 缺陷与数据问题
 content_hash: c2018279fe37f6e0
 generated_hash: a2efcd5f3dc39d44
 ---

@@ -12,6 +12,7 @@ source_card_id: 159
 tags:
   - 单价
   - 常见问题
+problem_type: 缺陷与数据问题
 content_hash: f5baea330f056360
 generated_hash: b0332296342ea684
 ---

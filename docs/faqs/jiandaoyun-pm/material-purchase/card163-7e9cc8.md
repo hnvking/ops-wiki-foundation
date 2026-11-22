@@ -13,6 +13,7 @@ tags:
   - 单价
   - 采购订单
   - 常见问题
+problem_type: 缺陷与数据问题
 content_hash: 4fd4bbf5015b01e0
 generated_hash: 8d863a7f47105df4
 ---

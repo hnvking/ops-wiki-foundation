@@ -12,6 +12,7 @@ source_card_id: 60
 tags:
   - 入库
   - 单价
+problem_type: 缺陷与数据问题
 content_hash: 47ec0ebfaaec59f6
 generated_hash: 599c0f10960e0f83
 ---

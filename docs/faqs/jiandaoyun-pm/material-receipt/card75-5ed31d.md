@@ -12,6 +12,7 @@ source_card_id: 75
 tags:
   - 对账
   - 入库
+problem_type: 配置与报表
 content_hash: 8df4a02ea21df7af
 generated_hash: 957ab6b1e1676253
 ---

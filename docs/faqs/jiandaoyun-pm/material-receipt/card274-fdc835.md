@@ -14,6 +14,7 @@ tags:
   - 单价
   - 入库
   - 常见问题
+problem_type: 配置与报表
 content_hash: 176f33a1b06c885d
 generated_hash: e6394e83268fabe8
 ---

@@ -12,6 +12,7 @@ source_card_id: 207
 tags:
   - 单价
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: b3dd1ca7bef8a8a8
 generated_hash: f29bfdb4b66b7187
 ---

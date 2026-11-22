@@ -12,6 +12,7 @@ source_card_id: 87
 tags:
   - 单价
   - 采购订单
+problem_type: 用户操作FAQ
 content_hash: 8c0f6d268987ab5f
 generated_hash: bbeef69a6137893a
 ---

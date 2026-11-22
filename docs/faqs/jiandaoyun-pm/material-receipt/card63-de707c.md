@@ -13,6 +13,7 @@ tags:
   - 对账
   - 入库
   - 常见问题
+problem_type: 配置与报表
 content_hash: 4bbe8cd4239f1723
 generated_hash: 112eaa5db2504218
 ---

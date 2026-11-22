@@ -12,6 +12,7 @@ source_card_id: 70
 tags:
   - 采购订单
   - 入库
+problem_type: 审批流与权限
 content_hash: 96f895ed562cb332
 generated_hash: 115b1d24947a8bdf
 ---

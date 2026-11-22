@@ -12,6 +12,7 @@ source_card_id: 21
 tags:
   - 出库
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: 7f8bd0411705600a
 generated_hash: 55d420ef72f14b39
 ---

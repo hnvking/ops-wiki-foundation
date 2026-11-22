@@ -12,6 +12,7 @@ source_card_id: 264
 tags:
   - 采购订单
   - 常见问题
+problem_type: 配置与报表
 content_hash: d79dc61d3b1ab75d
 generated_hash: db222180f97604d3
 ---

@@ -12,6 +12,7 @@ source_card_id: 200
 tags:
   - 对账
   - 入库
+problem_type: 用户操作FAQ
 content_hash: d62a91fa822aa39e
 generated_hash: 48fda47ffb7e83dc
 ---

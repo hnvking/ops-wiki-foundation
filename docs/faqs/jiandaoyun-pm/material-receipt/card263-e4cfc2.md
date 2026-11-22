@@ -12,6 +12,7 @@ source_card_id: 263
 tags:
   - 入库
   - 单价
+problem_type: 配置与报表
 content_hash: 2f4a4d459761dc7b
 generated_hash: 30c8fbc1fcd406d5
 ---

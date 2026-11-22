@@ -14,6 +14,7 @@ tags:
   - 入库
   - NC同步
   - 单价
+problem_type: 缺陷与数据问题
 content_hash: 23907e6c69b16645
 generated_hash: cf260d6e9e0f584a
 ---

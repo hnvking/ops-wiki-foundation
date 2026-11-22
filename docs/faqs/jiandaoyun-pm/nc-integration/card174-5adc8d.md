@@ -12,6 +12,7 @@ source_card_id: 174
 tags:
   - NC同步
   - 对账
+problem_type: 配置与报表
 content_hash: 65f90bdf5384fefa
 generated_hash: 2e1be6aab6014ab1
 ---

@@ -12,6 +12,7 @@ source_card_id: 74
 tags:
   - 对账
   - 采购订单
+problem_type: 审批流与权限
 content_hash: 13ccd6f48aaad25b
 generated_hash: 1e7c19911a9db71b
 ---

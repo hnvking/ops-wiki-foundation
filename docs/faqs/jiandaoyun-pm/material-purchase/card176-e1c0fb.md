@@ -13,6 +13,7 @@ tags:
   - 单价
   - 采购订单
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: 9eabe6d6226e1f2c
 generated_hash: 20ed38a89dce2553
 ---

@@ -14,6 +14,7 @@ tags:
   - 单价
   - 审批流
   - 入库
+problem_type: 审批流与权限
 content_hash: 828d213093dc135e
 generated_hash: 741dfd6e95c85c54
 ---

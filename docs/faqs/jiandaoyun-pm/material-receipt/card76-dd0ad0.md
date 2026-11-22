@@ -11,6 +11,7 @@ owner: IT 运维组
 source_card_id: 76
 tags:
   - 对账
+problem_type: 用户操作FAQ
 content_hash: 8c72e631f81dfa33
 generated_hash: 4ea3931d4bdb93ee
 ---

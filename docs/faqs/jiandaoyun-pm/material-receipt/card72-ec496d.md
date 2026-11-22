@@ -13,6 +13,7 @@ tags:
   - 对账
   - 入库
   - 采购订单
+problem_type: 审批流与权限
 content_hash: 22173f72a8a66f27
 generated_hash: 8dade0720b689573
 ---

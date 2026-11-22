@@ -11,6 +11,7 @@ owner: IT 运维组
 source_card_id: 71
 tags:
   - 审批流
+problem_type: 审批流与权限
 content_hash: f0869486d6d316ee
 generated_hash: 0971b1544b2ab7e2
 ---

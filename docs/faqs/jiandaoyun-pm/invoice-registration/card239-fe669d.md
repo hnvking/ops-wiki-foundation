@@ -11,6 +11,7 @@ owner: IT 运维组
 source_card_id: 239
 tags:
   - 对账
+problem_type: 配置与报表
 content_hash: bfdfe05fc7145e50
 generated_hash: bcdd2708683b4aaf
 ---

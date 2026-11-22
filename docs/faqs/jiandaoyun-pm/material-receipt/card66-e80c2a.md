@@ -13,6 +13,7 @@ tags:
   - 对账
   - 单价
   - 入库
+problem_type: 缺陷与数据问题
 content_hash: c64ac8c436c1cc1a
 generated_hash: 01689ebabbb1c22d
 ---

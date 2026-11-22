@@ -12,6 +12,7 @@ source_card_id: 253
 tags:
   - 入库
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: d0843afa8add6630
 generated_hash: aefa5fb9b1cc6bd8
 ---

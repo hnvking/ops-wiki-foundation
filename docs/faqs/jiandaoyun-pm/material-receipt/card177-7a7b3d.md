@@ -14,6 +14,7 @@ tags:
   - 单价
   - 对账
   - 常见问题
+problem_type: 配置与报表
 content_hash: cb229155f84f74d8
 generated_hash: 4c592c92a7d00d92
 ---

@@ -117,6 +117,28 @@ def slug_of(r):
     return "card%s-%s" % (card, h)
 
 
+VALID_PROBLEM_TYPES = {"用户操作FAQ", "审批流与权限", "配置与报表",
+                       "缺陷与数据问题", "系统对接与集成"}
+
+
+def cell_text(v):
+    """Normalize a smart-sheet cell (str or list[dict{text}]) to plain text."""
+    if isinstance(v, list):
+        if not v:
+            return ""
+        first = v[0]
+        if isinstance(first, dict):
+            return str(first.get("text") or "")
+        return str(first)
+    return str(v or "")
+
+
+def problem_type_of(r):
+    """Return the 5-class problem type, or '' if unset/unexpected."""
+    val = cell_text(r.get("问题类型")).strip()
+    return val if val in VALID_PROBLEM_TYPES else ""
+
+
 def yaml_str(s):
     s = str(s).replace("\r", " ").replace("\n", " ")
     if s == "":
@@ -215,6 +237,7 @@ def build_yaml(r, title, form, content_hash, generated_hash, extra=None):
              "severity: " + sev, "resolution: " + res, "last_reviewed: " + date,
              "description: " + yaml_str(desc if desc else title), "owner: IT 运维组",
              "source_card_id: " + yaml_str(str(r.get("卡片编号") or "")),
+             "problem_type: " + yaml_str(problem_type_of(r)),
              "content_hash: " + content_hash, "generated_hash: " + generated_hash]
     if tags:
         lines.append("tags:")

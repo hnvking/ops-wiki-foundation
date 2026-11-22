@@ -12,6 +12,7 @@ source_card_id: 131
 tags:
   - 入库
   - 采购订单
+problem_type: 配置与报表
 content_hash: 4421b25f62db90f6
 generated_hash: bfc79bed1cf54d65
 ---

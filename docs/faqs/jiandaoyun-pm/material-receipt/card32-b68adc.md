@@ -14,6 +14,7 @@ tags:
   - 审批流
   - 采购订单
   - 常见问题
+problem_type: 审批流与权限
 content_hash: a1af2d951d9c90f3
 generated_hash: ef37c2927480c8ff
 ---

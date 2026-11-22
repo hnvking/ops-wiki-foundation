@@ -12,6 +12,7 @@ source_card_id: 165
 tags:
   - 采购订单
   - 常见问题
+problem_type: 缺陷与数据问题
 content_hash: cbe28227ac1876a7
 generated_hash: 1d8fa00cc4970704
 ---

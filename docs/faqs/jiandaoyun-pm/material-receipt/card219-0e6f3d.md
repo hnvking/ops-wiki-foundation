@@ -12,6 +12,7 @@ source_card_id: 219
 tags:
   - 出库
   - 入库
+problem_type: 配置与报表
 content_hash: cc0a427d6c8c9897
 generated_hash: 39ec0102bd6a5d1e
 ---

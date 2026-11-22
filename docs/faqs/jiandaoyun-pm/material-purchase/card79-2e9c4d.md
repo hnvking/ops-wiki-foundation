@@ -13,6 +13,7 @@ tags:
   - 采购订单
   - 单价
   - 常见问题
+problem_type: 配置与报表
 content_hash: 69c33e92416b107c
 generated_hash: 31b70cab372a9875
 ---

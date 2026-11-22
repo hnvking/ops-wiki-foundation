@@ -12,6 +12,7 @@ source_card_id: 160
 tags:
   - 采购订单
   - 常见问题
+problem_type: 审批流与权限
 content_hash: e6cf2ac317424660
 generated_hash: c52c916e8120ca54
 ---

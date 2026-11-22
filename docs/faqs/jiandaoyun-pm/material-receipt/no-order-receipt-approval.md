@@ -14,6 +14,7 @@ tags:
   - 入库
   - 采购订单
   - 常见问题
+problem_type: 审批流与权限
 content_hash: c913e20dac71348f
 generated_hash: 71cdf27d5fad6ef1
 ---

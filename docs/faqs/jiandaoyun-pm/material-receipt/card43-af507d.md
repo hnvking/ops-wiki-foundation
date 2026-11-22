@@ -13,6 +13,7 @@ tags:
   - 入库
   - 采购订单
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: 1c0fa10ef3ff98af
 generated_hash: cf58bab046fc6d8b
 ---

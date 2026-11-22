@@ -14,6 +14,7 @@ tags:
   - 采购订单
   - 出库
   - 入库
+problem_type: 缺陷与数据问题
 content_hash: 6197bcee034e2586
 generated_hash: ecac817b017163e5
 ---

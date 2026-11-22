@@ -12,6 +12,7 @@ source_card_id: 62
 tags:
   - 入库
   - 采购订单
+problem_type: 缺陷与数据问题
 content_hash: 3d6eb7a6aafd6323
 generated_hash: 41bd5cf85cfee18c
 ---

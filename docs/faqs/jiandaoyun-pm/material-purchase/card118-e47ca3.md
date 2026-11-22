@@ -12,6 +12,7 @@ source_card_id: 118
 tags:
   - 采购订单
   - 审批流
+problem_type: 审批流与权限
 content_hash: ff0e33b998bab334
 generated_hash: 143ca65d3475d21d
 ---

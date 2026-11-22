@@ -11,6 +11,7 @@ owner: IT 运维组
 source_card_id: 68
 tags:
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: 997dffc412515c6d
 generated_hash: 34d36e59b3900368
 ---

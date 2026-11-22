@@ -14,6 +14,7 @@ tags:
   - NC同步
   - 入库
   - 常见问题
+problem_type: 用户操作FAQ
 content_hash: afa5725b4a9123ce
 generated_hash: 8f4185846100ad37
 ---

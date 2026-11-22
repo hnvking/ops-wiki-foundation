@@ -12,6 +12,7 @@ source_card_id: 52
 tags:
   - NC同步
   - 单价
+problem_type: 用户操作FAQ
 content_hash: e72d94e9cce9c295
 generated_hash: 1393aca9bd51a897
 ---

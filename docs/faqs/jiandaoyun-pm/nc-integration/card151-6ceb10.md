@@ -11,6 +11,7 @@ owner: IT 运维组
 source_card_id: 151
 tags:
   - NC同步
+problem_type: 缺陷与数据问题
 content_hash: 77ef070d7ac59873
 generated_hash: 6eca8278268ea374
 ---

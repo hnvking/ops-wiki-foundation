@@ -12,6 +12,7 @@ source_card_id: 271
 tags:
   - NC同步
   - 采购订单
+problem_type: 缺陷与数据问题
 content_hash: af1bbdc61d3741be
 generated_hash: 8efaef299a8e6886
 ---
