@@ -12,7 +12,7 @@ source_card_id: 263
 tags:
   - 入库
   - 单价
-content_hash: 3907b3ae8c632676
+content_hash: 2f4a4d459761dc7b
 generated_hash: 30c8fbc1fcd406d5
 ---
 # 产成品入库 结转成本 料工费未分开 存货核算

@@ -321,9 +321,196 @@
     .sidebar li.wiki-tree-parent > .wiki-tree-toggle::after { content: "▾"; }
     .sidebar li.wiki-tree-parent.wiki-tree-collapsed > .wiki-tree-toggle::after { content: "▸"; }
     .sidebar li.wiki-tree-parent.wiki-tree-collapsed > ul { display: none; }
+
+    /* ============ 顶部横向工具条：表格 → Wiki 同步控制台 ============ */
+    /* 静态 HTML，放在 #app 之外；fixed 在内容区顶部，正好占用 Docsify 预留的 60px */
+    .wiki-sync-panel {
+      position: fixed;
+      top: 0;
+      left: 300px;
+      right: 0;
+      z-index: 9998;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 10px 24px;
+      background: #fbfcfd;
+      border-bottom: 1px solid #e5e9ee;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    .wiki-sync-title { font-size: 14px; font-weight: 600; color: #2c3e50; white-space: nowrap; }
+    .wiki-sync-meta { font-size: 12px; color: #6c757d; white-space: nowrap; }
+    .wiki-sync-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .wiki-sync-btn {
+      padding: 7px 14px;
+      font-size: 13px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      background: #fff;
+      color: #2c3e50;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .wiki-sync-btn:hover:not(:disabled) { background: #f1f3f5; }
+    .wiki-sync-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .wiki-sync-btn-preview { border-color: #2c3e50; }
+    .wiki-sync-btn-refresh { background: #17a2b8; color: #fff; border-color: #17a2b8; }
+    .wiki-sync-btn-refresh:hover:not(:disabled) { background: #138496; }
+    .wiki-sync-btn-apply { background: #2c3e50; color: #fff; border-color: #2c3e50; }
+    .wiki-sync-btn-apply:hover:not(:disabled) { background: #34495e; }
+    .wiki-sync-status { font-size: 12px; color: #6c757d; min-height: 16px; }
+    .wiki-sync-toggle {
+      margin-left: auto;
+      border: 1px solid #ced4da;
+      background: #fff;
+      color: #6c757d;
+      font-size: 14px;
+      line-height: 1;
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    /* 结果区：默认收起；展开时浮在工具条下方，不挤压正文 */
+    .wiki-sync-body-wrap {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      display: none;
+      padding: 12px 24px 16px;
+      background: #fff;
+      border-bottom: 1px solid #e5e9ee;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+    .wiki-sync-panel.wiki-sync-open .wiki-sync-body-wrap { display: block; }
+    .wiki-sync-desc { font-size: 12px; color: #6c757d; line-height: 1.6; margin-bottom: 8px; }
+    .wiki-sync-output {
+      display: block;
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      max-height: 300px;
+      overflow: auto;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border-radius: 4px;
+      background: #f1f3f5;
+      color: #2c3e50;
+      border: 1px solid #dee2e6;
+    }
+    .wiki-sync-output.wiki-sync-ok { background: #d4edda; color: #155724; border-color: #c3e6cb; }
+    .wiki-sync-output.wiki-sync-err { background: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+
+    /* 标签页 */
+    .wiki-sync-tabs { display: flex; gap: 4px; border-bottom: 1px solid #e5e9ee; margin: 10px 0 0; }
+    .wiki-sync-tab {
+      padding: 7px 14px; font-size: 12px; border: none; border-bottom: 2px solid transparent;
+      background: transparent; color: #6c757d; cursor: pointer;
+    }
+    .wiki-sync-tab:hover { color: #2c3e50; }
+    .wiki-sync-tab.active { color: #2c3e50; font-weight: 600; border-bottom-color: #2c3e50; }
+    .wiki-sync-tabpanel { padding-top: 12px; max-height: 55vh; overflow-y: auto; }
+    .wiki-sync-empty { font-size: 12px; color: #8a94a0; line-height: 1.7; padding: 10px 0; }
+
+    /* 变更报告 */
+    .wiki-report-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+    .wiki-stat {
+      flex: 1 1 120px; padding: 10px 12px; border: 1px solid #e5e9ee;
+      border-radius: 6px; background: #fbfcfd;
+    }
+    .wiki-stat-num { font-size: 20px; font-weight: 600; color: #2c3e50; }
+    .wiki-stat-label { font-size: 11px; color: #6c757d; margin-top: 2px; }
+    .wiki-stat.add .wiki-stat-num { color: #28a745; }
+    .wiki-stat.remove .wiki-stat-num { color: #dc3545; }
+    .wiki-stat.change .wiki-stat-num { color: #e0a800; }
+    .wiki-report-sub { font-size: 12px; font-weight: 600; color: #2c3e50; margin: 14px 0 6px; }
+    .wiki-dist { display: flex; flex-wrap: wrap; gap: 6px; }
+    .wiki-dist-chip {
+      font-size: 12px; padding: 3px 10px; border-radius: 12px;
+      background: #eef1f4; color: #495057;
+    }
+    .wiki-dist-chip b { color: #2c3e50; }
+    .wiki-report-ok { font-size: 13px; color: #28a745; padding: 12px 0; }
+    .wiki-change-row { border: 1px solid #e5e9ee; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+    .wiki-change-head { padding: 8px 12px; background: #fbfcfd; font-size: 12px; }
+    .wiki-change-head b { color: #2c3e50; }
+    .wiki-change-q { color: #6c757d; margin-left: 8px; }
+    .wiki-change-field { padding: 6px 12px; font-size: 12px; border-top: 1px solid #eef1f4; }
+    .wiki-change-field .fname { color: #2c3e50; font-weight: 600; }
+    .wiki-diff-old { color: #b02a37; }
+    .wiki-diff-new { color: #1a7f37; }
+
+    /* 全部数据表 */
+    .wiki-sync-filterbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 10px; font-size: 12px; color: #495057; }
+    .wiki-sync-filterbar select, .wiki-sync-filterbar input {
+      font-size: 12px; padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; color: #2c3e50;
+    }
+    .wiki-sync-filterbar input { min-width: 220px; }
+    .wiki-sync-count { color: #6c757d; }
+    .wiki-sync-tablewrap { max-height: 50vh; overflow: auto; border: 1px solid #e5e9ee; border-radius: 6px; }
+    .wiki-sync-tablewrap table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .wiki-sync-tablewrap th, .wiki-sync-tablewrap td {
+      padding: 6px 10px; text-align: left; border-bottom: 1px solid #eef1f4; vertical-align: top;
+    }
+    .wiki-sync-tablewrap th { position: sticky; top: 0; background: #fbfcfd; color: #2c3e50; font-weight: 600; z-index: 1; white-space: nowrap; }
+    .wiki-sync-tablewrap tr:hover td { background: #f8fafc; }
+    .wiki-sync-tablewrap .c-id { white-space: nowrap; font-family: Consolas, monospace; color: #2c3e50; }
+    .wiki-badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; white-space: nowrap; }
+    .wiki-badge-pub { background: #d4edda; color: #155724; }
+    .wiki-badge-pend { background: #fff3cd; color: #856404; }
+    .wiki-badge-na { background: #e2e3e5; color: #383d41; }
+    .wiki-badge-other { background: #eef1f4; color: #495057; }
+    /* 侧边栏收起 / 移动端时，工具条跟随内容区左移 */
+    body.close .wiki-sync-panel { left: 0; }
+    @media screen and (max-width: 768px) {
+      .wiki-sync-panel { left: 0; padding: 8px 14px; gap: 8px; }
+    }
   </style>
 </head>
 <body>
+  <!-- 首页同步控制台：静态 HTML，放在 #app 之外，docsify 不会接管它，保证一定可见 -->
+  <div id="wiki-sync-panel" class="wiki-sync-panel">
+    <span class="wiki-sync-title">表格 → Wiki 同步</span>
+    <div class="wiki-sync-actions">
+      <button type="button" class="wiki-sync-btn wiki-sync-btn-refresh" data-mode="refresh">① 刷新表格数据</button>
+      <button type="button" class="wiki-sync-btn wiki-sync-btn-preview" data-mode="preview">② 预览</button>
+      <button type="button" class="wiki-sync-btn wiki-sync-btn-apply" data-mode="apply">③ 正式写入</button>
+    </div>
+    <span class="wiki-sync-status" id="wiki-sync-status"></span>
+    <span class="wiki-sync-meta" id="wiki-sync-meta">读取输入快照信息…</span>
+    <button type="button" class="wiki-sync-toggle" id="wiki-sync-toggle" title="展开/收起说明与结果">⚙</button>
+    <div class="wiki-sync-body-wrap">
+      <div class="wiki-sync-desc">
+        工作流：表格里人工把卡片标为<strong>已审核</strong> → 点<strong>① 刷新</strong>只拉这些"待处理"卡片 → <strong>② 预览</strong> → <strong>③ 写入</strong>FAQ 后<strong>自动把表格状态反写为「已发布」</strong>，该卡片即离开队列。人工改过的文档会被自动保护。
+      </div>
+      <div class="wiki-sync-tabs" id="wiki-sync-tabs">
+        <button type="button" class="wiki-sync-tab active" data-tab="report">本次刷新变更</button>
+        <button type="button" class="wiki-sync-tab" data-tab="rows">待处理卡片</button>
+        <button type="button" class="wiki-sync-tab" data-tab="log">运行日志</button>
+      </div>
+      <div class="wiki-sync-tabpanel" id="wiki-tab-report">
+        <div class="wiki-sync-empty" id="wiki-report-empty">尚未刷新。点「① 刷新表格数据」后，这里会显示本次拉取到的「已审核」待处理卡片、状态分布，以及相比上次的逐条变更明细。</div>
+        <div id="wiki-report-body"></div>
+      </div>
+      <div class="wiki-sync-tabpanel" id="wiki-tab-rows" style="display:none">
+        <div class="wiki-sync-filterbar">
+          <label>状态筛选：
+            <select id="wiki-rows-status"><option value="">全部</option></select>
+          </label>
+          <label>搜索：<input type="text" id="wiki-rows-search" placeholder="编号 / 问题 / 处理结果 / 模块"></label>
+          <span class="wiki-sync-count" id="wiki-rows-count"></span>
+        </div>
+        <div class="wiki-sync-tablewrap" id="wiki-rows-table"></div>
+      </div>
+      <div class="wiki-sync-tabpanel" id="wiki-tab-log" style="display:none">
+        <pre class="wiki-sync-output" id="wiki-sync-output"></pre>
+      </div>
+    </div>
+  </div>
   <div id="app">请稍候，正在加载文档…</div>
   <script>
     window.$docsify = {
@@ -442,5 +629,260 @@
   <!-- 在线编辑/校验插件：需在 docsify 之后加载，通过 $docsify.plugins 注册。
        追加版本参数防止浏览器缓存旧文件，改插件后需同步更新 v= 值。 -->
   <script src="docsify-editor-plugin.js?v=20261118k"></script>
+  <!-- 首页同步控制台：面板为静态 HTML（在 #app 外），此脚本只负责绑定事件 -->
+  <script>
+    (function () {
+      var panel = document.getElementById("wiki-sync-panel");
+      if (!panel) return;
+
+      // ---------- 工具函数 ----------
+      function esc(s) {
+        return String(s == null ? "" : s)
+          .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      }
+      function badge(status) {
+        var cls = "wiki-badge-other";
+        if (status === "已发布" || status === "已审核") cls = "wiki-badge-pub";
+        else if (status === "待审核") cls = "wiki-badge-pend";
+        else if (status === "不适用") cls = "wiki-badge-na";
+        return '<span class="wiki-badge ' + cls + '">' + esc(status || "—") + "</span>";
+      }
+
+      // ---------- 标签切换 ----------
+      var tabButtons = panel.querySelectorAll(".wiki-sync-tab");
+      function switchTab(name) {
+        var map = { report: "wiki-tab-report", rows: "wiki-tab-rows", log: "wiki-tab-log" };
+        for (var i = 0; i < tabButtons.length; i++) {
+          tabButtons[i].classList.toggle("active", tabButtons[i].getAttribute("data-tab") === name);
+        }
+        for (var key in map) {
+          var el = document.getElementById(map[key]);
+          if (el) el.style.display = (key === name) ? "block" : "none";
+        }
+        if (name === "rows") loadRows(); // 首次切换到"全部数据"时加载
+      }
+      for (var t = 0; t < tabButtons.length; t++) {
+        tabButtons[t].addEventListener("click", function () {
+          switchTab(this.getAttribute("data-tab"));
+        });
+      }
+
+      // ---------- 渲染变更报告 ----------
+      function renderReport(rep) {
+        var empty = document.getElementById("wiki-report-empty");
+        var body = document.getElementById("wiki-report-body");
+        if (empty) empty.style.display = "none";
+        if (!rep) { body.innerHTML = ""; return; }
+
+        var isQueue = rep.semantics === "queue";
+        var html = '<div class="wiki-report-stats">'
+          + '<div class="wiki-stat"><div class="wiki-stat-num">' + (rep.total || 0) + '</div><div class="wiki-stat-label">待处理卡片（已审核）</div></div>'
+          + '<div class="wiki-stat add"><div class="wiki-stat-num">' + (rep.added ? rep.added.length : 0) + '</div><div class="wiki-stat-label">' + (isQueue ? "新进入队列" : "新增卡片") + '</div></div>'
+          + '<div class="wiki-stat remove"><div class="wiki-stat-num">' + (rep.removed ? rep.removed.length : 0) + '</div><div class="wiki-stat-label">' + (isQueue ? "已处理离队" : "消失卡片") + '</div></div>'
+          + '<div class="wiki-stat change"><div class="wiki-stat-num">' + (rep.changed ? rep.changed.length : 0) + '</div><div class="wiki-stat-label">内容变更</div></div>'
+          + '<div class="wiki-stat"><div class="wiki-stat-num">' + (rep.unchanged_count || 0) + '</div><div class="wiki-stat-label">仍在队列未变</div></div>'
+          + '</div>';
+
+        function chips(title, dist) {
+          if (!dist || !dist.length) return "";
+          var s = '<div class="wiki-report-sub">' + title + '</div><div class="wiki-dist">';
+          for (var i = 0; i < dist.length; i++) {
+            s += '<span class="wiki-dist-chip">' + esc(dist[i].name) + ' <b>' + dist[i].count + '</b></span>';
+          }
+          return s + "</div>";
+        }
+        html += chips("状态分布", rep.status_dist);
+        html += chips("沉淀类型分布", rep.type_dist);
+
+        function itemList(title, arr, kind) {
+          if (!arr || !arr.length) return "";
+          var s = '<div class="wiki-report-sub">' + title + '（' + arr.length + '）</div>';
+          for (var i = 0; i < arr.length; i++) {
+            s += '<div class="wiki-change-row"><div class="wiki-change-head"><b>#' + esc(arr[i].id) + '</b>'
+               + '<span class="wiki-change-q">' + esc(arr[i].question) + '</span></div>'
+               + (arr[i].diffs ? renderDiffs(arr[i].diffs) : "") + "</div>";
+          }
+          return s;
+        }
+        function renderDiffs(diffs) {
+          var s = "";
+          for (var i = 0; i < diffs.length; i++) {
+            s += '<div class="wiki-change-field"><span class="fname">' + esc(diffs[i].field) + '</span>：'
+               + '<span class="wiki-diff-old">' + esc(diffs[i].old || "（空）") + '</span>'
+               + ' → <span class="wiki-diff-new">' + esc(diffs[i].new || "（空）") + '</span></div>';
+          }
+          return s;
+        }
+        html += itemList(isQueue ? "新进入队列（新标记的已审核）" : "新增卡片", rep.added, "add");
+        html += itemList(isQueue ? "已处理离队（写入后已反写为已发布）" : "消失卡片", rep.removed, "remove");
+        html += itemList("内容变更卡片", rep.changed, "change");
+
+        if ((!rep.added || !rep.added.length) && (!rep.removed || !rep.removed.length)
+            && (!rep.changed || !rep.changed.length)) {
+          html += '<div class="wiki-report-ok">✅ ' + (isQueue
+            ? "本次刷新待处理队列没有变化（已审核卡片与上次一致）。"
+            : "本次刷新相比上次快照没有逐条变化（表格内容与已存快照一致）。") + '</div>';
+        }
+        if (isQueue && rep.total === 0) {
+          html += '<div class="wiki-report-ok">🎉 待处理队列为空——所有已审核卡片都已写入并反写为已发布。</div>';
+        }
+        if (rep.migration) {
+          html = '<div class="wiki-report-ok">ℹ️ 已从旧的"全量快照"切换到"已审核队列"模式。现在快照只保存待处理的已审核卡片；本次为一次性迁移，不显示逐条离队明细。下次刷新起将按队列正常显示变更。</div>' + html;
+        }
+        body.innerHTML = html;
+      }
+
+      // ---------- 全部卡片数据 ----------
+      var rowsCache = null;
+      function loadRows(force) {
+        var tableEl = document.getElementById("wiki-rows-table");
+        var countEl = document.getElementById("wiki-rows-count");
+        if (rowsCache && !force) { renderRowsTable(); return; }
+        tableEl.innerHTML = '<div class="wiki-sync-empty">正在载入卡片数据…</div>';
+        fetch("/api/sync/rows")
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.success) { tableEl.innerHTML = '<div class="wiki-sync-empty">载入失败：' + esc(d.input && d.input.error || "未知") + "</div>"; return; }
+            rowsCache = d.rows || [];
+            buildStatusOptions();
+            renderRowsTable();
+          })
+          .catch(function (err) {
+            tableEl.innerHTML = '<div class="wiki-sync-empty">载入失败：' + esc(err.message) + "</div>";
+          });
+      }
+      function buildStatusOptions() {
+        var sel = document.getElementById("wiki-rows-status");
+        if (!sel || sel.options.length > 1) return; // 已填充
+        var seen = {};
+        for (var i = 0; i < rowsCache.length; i++) {
+          var s = rowsCache[i]["状态"] || "(空)";
+          if (!seen[s]) { seen[s] = 1; var o = document.createElement("option"); o.value = s; o.textContent = s; sel.appendChild(o); }
+        }
+      }
+      function renderRowsTable() {
+        var tableEl = document.getElementById("wiki-rows-table");
+        var countEl = document.getElementById("wiki-rows-count");
+        var status = document.getElementById("wiki-rows-status").value;
+        var kw = (document.getElementById("wiki-rows-search").value || "").trim().toLowerCase();
+        var cols = ["卡片编号", "状态", "沉淀类型", "问题原话", "处理结果一句话", "模块", "问题类型", "处理日期"];
+        var filtered = [];
+        for (var i = 0; i < rowsCache.length; i++) {
+          var r = rowsCache[i];
+          if (status && (r["状态"] || "") !== status) continue;
+          if (kw) {
+            var hay = ["卡片编号", "问题原话", "处理结果一句话", "模块"].map(function (k) { return r[k] || ""; }).join(" ").toLowerCase();
+            if (hay.indexOf(kw) < 0) continue;
+          }
+          filtered.push(r);
+        }
+        var h = '<table><thead><tr>';
+        for (var c = 0; c < cols.length; c++) h += "<th>" + esc(cols[c]) + "</th>";
+        h += "</tr></thead><tbody>";
+        for (var i = 0; i < filtered.length; i++) {
+          var r = filtered[i];
+          h += "<tr>";
+          for (var c = 0; c < cols.length; c++) {
+            var v = r[cols[c]] || "";
+            if (cols[c] === "卡片编号") h += '<td class="c-id">' + esc(v) + "</td>";
+            else if (cols[c] === "状态") h += "<td>" + badge(v) + "</td>";
+            else h += "<td title=\"" + esc(v) + "\">" + esc(v.length > 60 ? v.slice(0, 60) + "…" : v) + "</td>";
+          }
+          h += "</tr>";
+        }
+        h += "</tbody></table>";
+        tableEl.innerHTML = h || '<div class="wiki-sync-empty">无匹配数据</div>';
+        countEl.textContent = "显示 " + filtered.length + " / " + rowsCache.length + " 条";
+      }
+      document.getElementById("wiki-rows-status").addEventListener("change", renderRowsTable);
+      document.getElementById("wiki-rows-search").addEventListener("input", renderRowsTable);
+
+      // 展开 / 收起说明与结果区
+      var toggle = document.getElementById("wiki-sync-toggle");
+      toggle.addEventListener("click", function () {
+        panel.classList.toggle("wiki-sync-open");
+      });
+
+      // 载入输入快照元信息
+      fetch("/api/sync/status")
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var el = document.getElementById("wiki-sync-meta");
+          if (!el) return;
+          if (d.exists) {
+            el.textContent = "输入快照 " + (d.rows || "?") + " 条 · 更新于 " + (d.modified || "未知");
+          } else {
+            el.textContent = "输入快照缺失：" + d.path;
+          }
+        })
+        .catch(function () {
+          var el = document.getElementById("wiki-sync-meta");
+          if (el) el.textContent = "无法读取输入快照信息（后端未启动？）";
+        });
+
+      function runSync(mode) {
+        var labels = { refresh: "刷新表格数据", preview: "预览", apply: "正式写入" };
+        if (mode === "apply" && !window.confirm("即将把表格卡片正式写入 Wiki 文档（人工改过的会被跳过）。确认继续？")) {
+          return;
+        }
+        var statusEl = document.getElementById("wiki-sync-status");
+        var outEl = document.getElementById("wiki-sync-output");
+        var buttons = panel.querySelectorAll(".wiki-sync-btn");
+        panel.classList.add("wiki-sync-open"); // 点击后自动展开结果区
+        for (var i = 0; i < buttons.length; i++) buttons[i].disabled = true;
+        statusEl.textContent = "正在" + labels[mode] + "，请稍候…";
+        outEl.textContent = "";
+        outEl.className = "wiki-sync-output";
+
+        fetch("/api/sync/" + mode, { method: "POST" })
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            var text = (d.stdout || "") + (d.stderr ? "\n[stderr] " + d.stderr : "");
+            outEl.textContent = text || "（无输出）";
+            outEl.className = "wiki-sync-output " + (d.success ? "wiki-sync-ok" : "wiki-sync-err");
+            statusEl.textContent = (d.success ? "✅ 完成" : "❌ 失败") + " · " + labels[mode];
+            if (mode === "refresh") {
+              if (d.success && d.report) {
+                renderReport(d.report);   // 渲染本次刷新变更明细
+                switchTab("report");      // 自动切到变更报告
+                rowsCache = null;         // 数据已更新，下次切换时重新载入
+                loadRows(true);           // 顺带刷新"待处理卡片"缓存
+              }
+              if (d.success && d.input) {
+                var meta = document.getElementById("wiki-sync-meta");
+                if (meta) meta.textContent = "待处理 " + (d.input.rows || "?") + " 条 · 更新于 " + (d.input.modified || "刚刚");
+              }
+            } else if (mode === "apply") {
+              switchTab("log"); // 写入结果看运行日志
+              if (d.success && d.writeback) {
+                var wb = d.writeback;
+                var wbMsg = "[表格反写] 成功 " + wb.success + " 条，失败 " + wb.failed.length + " 条，跳过 " + wb.skipped_no_rid + " 条。";
+                statusEl.textContent = "✅ 写入完成 · " + wbMsg + " 可再点①刷新确认队列已清空";
+              }
+              rowsCache = null; // 表格状态已变，缓存失效
+            } else {
+              switchTab("log"); // 预览结果看运行日志
+            }
+          })
+          .catch(function (err) {
+            outEl.textContent = "请求失败：" + err.message;
+            outEl.className = "wiki-sync-output wiki-sync-err";
+            statusEl.textContent = "❌ 请求失败";
+            switchTab("log");
+          })
+          .finally(function () {
+            for (var i = 0; i < buttons.length; i++) buttons[i].disabled = false;
+          });
+      }
+
+      var btns = panel.querySelectorAll(".wiki-sync-btn");
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener("click", function () {
+          runSync(this.getAttribute("data-mode"));
+        });
+      }
+    })();
+  </script>
 </body>
 </html>

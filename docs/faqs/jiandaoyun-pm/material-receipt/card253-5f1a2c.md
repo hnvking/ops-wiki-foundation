@@ -12,7 +12,7 @@ source_card_id: 253
 tags:
   - 入库
   - 常见问题
-content_hash: 3907b3ae8c632676
+content_hash: d0843afa8add6630
 generated_hash: aefa5fb9b1cc6bd8
 ---
 # 生产订单 完工状态 入库时点与查询时点不一致

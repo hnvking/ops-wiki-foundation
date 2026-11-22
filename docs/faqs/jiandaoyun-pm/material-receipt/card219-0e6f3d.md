@@ -12,7 +12,7 @@ source_card_id: 219
 tags:
   - 出库
   - 入库
-content_hash: 3907b3ae8c632676
+content_hash: cc0a427d6c8c9897
 generated_hash: 39ec0102bd6a5d1e
 ---
 # 提料单选择劳务合同取消必填、后续审批节点可完善

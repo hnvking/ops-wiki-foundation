@@ -14,7 +14,7 @@ tags:
   - 入库
   - NC同步
   - 单价
-content_hash: 3907b3ae8c632676
+content_hash: 23907e6c69b16645
 generated_hash: cf260d6e9e0f584a
 ---
 # 订单金额远大于入库金额、同一申购多单引用、重复明细

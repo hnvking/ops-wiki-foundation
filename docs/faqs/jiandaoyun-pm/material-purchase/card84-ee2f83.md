@@ -12,7 +12,7 @@ source_card_id: 84
 tags:
   - 采购订单
   - 审批流
-content_hash: 3907b3ae8c632676
+content_hash: cc47a2991b0bdf4e
 generated_hash: bb136809748243d2
 ---
 # 多个申购合并询价定供应商时只能单选申购、需调整表单配置

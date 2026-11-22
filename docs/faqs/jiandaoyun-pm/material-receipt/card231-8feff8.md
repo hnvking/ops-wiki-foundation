@@ -13,7 +13,7 @@ tags:
   - 采购订单
   - 出库
   - 入库
-content_hash: 3907b3ae8c632676
+content_hash: 2606574c95fbf652
 generated_hash: 2fd9f11d155510e8
 ---
 # 无订单直入直出单大批审批将生成大量订单需先与供应链专题确认

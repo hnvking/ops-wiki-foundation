@@ -12,7 +12,7 @@ source_card_id: 52
 tags:
   - NC同步
   - 单价
-content_hash: 3907b3ae8c632676
+content_hash: e72d94e9cce9c295
 generated_hash: 1393aca9bd51a897
 ---
 # 含税单价截切重贴后NC同步成功

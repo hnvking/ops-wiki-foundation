@@ -12,7 +12,7 @@ source_card_id: 108
 tags:
   - 入库
   - 采购订单
-content_hash: 3907b3ae8c632676
+content_hash: 22e1e9532289b5c7
 generated_hash: fd2a98a3f8dbb7b1
 ---
 # 预入库 是否有订单 申购明细 数量扣减 已下单量

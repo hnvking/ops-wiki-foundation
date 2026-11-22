@@ -12,7 +12,7 @@ source_card_id: 271
 tags:
   - NC同步
   - 采购订单
-content_hash: 3907b3ae8c632676
+content_hash: af1bbdc61d3741be
 generated_hash: 8efaef299a8e6886
 ---
 # 材料付款单 缺少订单编码 未推NC

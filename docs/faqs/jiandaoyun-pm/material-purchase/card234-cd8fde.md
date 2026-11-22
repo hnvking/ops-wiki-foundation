@@ -12,7 +12,7 @@ source_card_id: 234
 tags:
   - 单价
   - 采购订单
-content_hash: 3907b3ae8c632676
+content_hash: c869b1ffe296e230
 generated_hash: 29b8553f29e5a4ac
 ---
 # 采购订单单价因合同重复导入带小数点需按后导入合同改为不带小数点

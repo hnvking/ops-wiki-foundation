@@ -332,7 +332,10 @@ def main():
     idx = index_existing()
     print("表格记录: %d | 现有FAQ文档(带溯源): %d" % (len(rows), len(idx)))
 
-    report = {"added": [], "updated": [], "conflict": [], "unchanged": [], "baseline": []}
+    report = {"added": [], "updated": [], "conflict": [], "unchanged": [], "baseline": [],
+              # written: 本次 --apply 真正写入/建立基线的卡片，供后端反写表格状态用。
+              # 每项含 card(卡片编号) 与 record_id(表格行主键)。conflict/unchanged 不在内。
+              "written": []}
     total_gate = 0
     for r in rows:
         if not gate_pass(r):
@@ -353,6 +356,8 @@ def main():
                 path = os.path.join(folder, slug_of(r) + ".md")
                 with open(path, "w", encoding="utf-8", newline="\n") as fh:
                     fh.write(content)
+                report["written"].append({"card": card,
+                                          "record_id": str(r.get("RECORD_ID") or "").strip()})
             continue
 
         path, fm, body, ghash = idx[card]
@@ -369,6 +374,8 @@ def main():
                 lines.append("generated_hash: " + gh)
                 with open(path, "w", encoding="utf-8", newline="\n") as fh:
                     fh.write("---\n" + "\n".join(lines) + "\n---\n" + body + "\n")
+                report["written"].append({"card": card,
+                                          "record_id": str(r.get("RECORD_ID") or "").strip()})
             continue
 
         cur_body_hash = body_hash_of(body)
@@ -389,9 +396,11 @@ def main():
             content = build_yaml(r, title, form, chash, new_ghash) + "\n" + new_body
             with open(path, "w", encoding="utf-8", newline="\n") as fh:
                 fh.write(content)
+            report["written"].append({"card": card,
+                                      "record_id": str(r.get("RECORD_ID") or "").strip()})
 
     print("\n闸门内卡片: %d" % total_gate)
-    for k in ("added", "updated", "conflict", "unchanged", "baseline"):
+    for k in ("added", "updated", "conflict", "unchanged", "baseline", "written"):
         print("  %-10s %d" % (k, len(report[k])))
     if args.report:
         json.dump(report, open(args.report, "w", encoding="utf-8"), ensure_ascii=False, indent=2)

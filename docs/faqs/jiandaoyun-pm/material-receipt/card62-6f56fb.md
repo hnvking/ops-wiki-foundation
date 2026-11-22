@@ -12,7 +12,7 @@ source_card_id: 62
 tags:
   - 入库
   - 采购订单
-content_hash: 3907b3ae8c632676
+content_hash: 3d6eb7a6aafd6323
 generated_hash: 41bd5cf85cfee18c
 ---
 # 入库选材料明细无数据、物料状态异常

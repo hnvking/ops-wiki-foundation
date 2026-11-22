@@ -14,7 +14,7 @@ tags:
   - 采购订单
   - 出库
   - 入库
-content_hash: 3907b3ae8c632676
+content_hash: 6197bcee034e2586
 generated_hash: ecac817b017163e5
 ---
 # 订单价格正确、直入直出单价错误、重选订单未重选物料

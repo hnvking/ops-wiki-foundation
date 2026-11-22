@@ -12,7 +12,7 @@ source_card_id: 87
 tags:
   - 单价
   - 采购订单
-content_hash: 3907b3ae8c632676
+content_hash: 8c0f6d268987ab5f
 generated_hash: bbeef69a6137893a
 ---
 # 同物料多乡镇价格不同、下单筛选镇带出对应价格

@@ -11,7 +11,7 @@ owner: IT 运维组
 source_card_id: 145
 tags:
   - 常见问题
-content_hash: 3907b3ae8c632676
+content_hash: b55f0e010adb8f21
 generated_hash: 8d8fff640ed20c21
 ---
 # 工作面分配 功能开通 班组入库 7.4.1 必填项 已解决

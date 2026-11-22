@@ -14,9 +14,12 @@ FastAPI 后端 —— ops-wiki-foundation 的 Markdown 在线编辑与校验触�
     uvicorn backend.main:app --reload --port 8000
 """
 
+import json
 import re
+import shutil
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -35,6 +38,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DOCS_DIR = BASE_DIR / "docs"
 # 校验脚本：scripts/validate_docs.py
 VALIDATE_SCRIPT = BASE_DIR / "scripts" / "validate_docs.py"
+# 表格 → 项目 同步脚本与固定输入快照（输入含聊天原文证据层，放 exports/ 已被 gitignore）
+SYNC_SCRIPT = BASE_DIR / "scripts" / "sync_from_wecom.py"
+SYNC_INPUT = BASE_DIR / "exports" / "wecom_cards.json"
+# 刷新按钮：企微 CLI 可执行文件路径。启动时解析绝对路径——Windows 上 wecom-cli 是
+# .CMD 脚本，subprocess 只用裸命令名会 FileNotFoundError，必须用 which() 解析出的全路径。
+WECOM_CLI = shutil.which("wecom-cli") or "wecom-cli"
+WECOM_DOCID = "s3_AfsAUAYsANQCNg6CtWWh8RnK0zr3K"
+WECOM_SHEET = "PM运维知识卡"
+# 刷新只拉「已审核」卡片——表格即待处理队列：人工审核标「已审核」→ 刷新进快照 →
+# 写入 Wiki 后自动反写为「已发布」→ 下次刷新不再拉到。RECORD_ID 是反写表格的主键。
+REFRESH_SQL = (
+    "SELECT `RECORD_ID`, `卡片编号`, `沉淀类型`, `状态`, `问题原话`, `处理结果一句话`, "
+    "`业务规则与判断逻辑`, `标准操作步骤`, `注意事项/风险提示`, `根因分类`, "
+    "`关键词/摘要`, `标签`, `适用系统/流程`, `影响范围说明`, `影响范围分类`, "
+    "`涉及表单名称`, `模块`, `问题类型`, "
+    "DATE_FORMAT(`处理日期`, \"%Y-%m-%d\") AS `处理日期`, `聊天原文` "
+    f"FROM `{WECOM_SHEET}` WHERE `状态` = '已审核' LIMIT 500"
+)
+# 反写：写入成功后把对应表格行状态改成「已发布」（单选选项 ID JdaNKJ）
+WRITEBACK_STATUS_TEXT = "已发布"
+WRITEBACK_STATUS_ID = "JdaNKJ"
 # Python 解释器：优先使用当前解释器，保证与运行后端的解释器一致
 PYTHON = sys.executable or "python"
 
@@ -511,6 +535,417 @@ def run_validate_script() -> dict:
 def validate() -> dict:
     """运行 scripts/validate_docs.py，返回 stdout / stderr / success。"""
     return run_validate_script()
+
+
+# ---------------------------------------------------------------------------
+# 表格 → 项目 同步：首页两个按钮（预览 / 正式写入）调用的接口。
+# 输入文件路径固定为 exports/wecom_cards.json，禁止前端传入任意路径，
+# 避免任意文件读取 / 命令注入；脚本本身只读该 JSON、只写 docs/faqs/ 下的 .md。
+# ---------------------------------------------------------------------------
+
+def _cell_text(value) -> str:
+    """把表格单元格值规范成纯文本。
+
+    企业微信 smartsheet 导出的字段值形如 [{"text": "..."}]，也可能是纯 str 或 None。
+    统一成 str 便于比较与展示。
+    """
+    if isinstance(value, list) and value:
+        first = value[0]
+        if isinstance(first, dict):
+            return str(first.get("text", "") or "")
+        return str(first or "")
+    if isinstance(value, dict):
+        return str(value.get("text", "") or "")
+    return "" if value is None else str(value)
+
+
+# 生成"具体数据"报告时展示的字段顺序（表格里真正有内容的业务字段）
+_REPORT_FIELDS = [
+    "卡片编号", "状态", "沉淀类型", "问题原话", "处理结果一句话",
+    "业务规则与判断逻辑", "标准操作步骤", "注意事项/风险提示", "根因分类",
+    "关键词/摘要", "标签", "适用系统/流程", "影响范围说明", "影响范围分类",
+    "涉及表单名称", "模块", "问题类型", "处理日期",
+]
+
+
+def _load_snapshot_rows(path: Path) -> list:
+    """读取快照 JSON 里的 rows；失败返回空列表。"""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        vals = data.get("values", [])
+        v = vals[0] if vals else {}
+        if isinstance(v, str):
+            v = json.loads(v)
+        return v.get("rows", [])
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def build_diff_report(old_rows: list, new_rows: list) -> dict:
+    """对比刷新前后的卡片数据，生成结构化变更报告（按卡片编号匹配）。
+
+    返回：
+        total / status_dist / type_dist：新快照的规模与分布
+        added / removed：新增 / 消失的卡片（编号 + 问题原话）
+        changed：内容有变化的卡片（编号 + 变化字段 + 前后值，值截断）
+        unchanged_count：完全不变的卡片数
+    """
+    def index(rows):
+        out = {}
+        for r in rows:
+            cid = _cell_text(r.get("卡片编号")).strip() or "(无编号)"
+            out[cid] = r
+        return out
+
+    old_idx, new_idx = index(old_rows), index(new_rows)
+
+    def brief(cid, row):
+        return {"id": cid, "question": _cell_text(row.get("问题原话"))[:80]}
+
+    added = [brief(c, new_idx[c]) for c in sorted(set(new_idx) - set(old_idx))]
+    removed = [brief(c, old_idx[c]) for c in sorted(set(old_idx) - set(new_idx))]
+
+    changed = []
+    for cid in sorted(set(old_idx) & set(new_idx)):
+        o, n = old_idx[cid], new_idx[cid]
+        diffs = []
+        for field in _REPORT_FIELDS:
+            ov, nv = _cell_text(o.get(field)).strip(), _cell_text(n.get(field)).strip()
+            if ov != nv:
+                diffs.append({
+                    "field": field,
+                    "old": ov[:120],
+                    "new": nv[:120],
+                })
+        if diffs:
+            changed.append({
+                "id": cid,
+                "question": _cell_text(n.get("问题原话"))[:80],
+                "diffs": diffs,
+            })
+
+    def dist(rows, field):
+        counter = {}
+        for r in rows:
+            key = _cell_text(r.get(field)).strip() or "(空)"
+            counter[key] = counter.get(key, 0) + 1
+        return [{"name": k, "count": v}
+                for k, v in sorted(counter.items(), key=lambda kv: (-kv[1], kv[0]))]
+
+    common = len(set(old_idx) & set(new_idx))
+    return {
+        "semantics": "queue",  # 表格=待处理队列：已审核进来，处理后反写已发布离开
+        "total": len(new_rows),
+        "status_dist": dist(new_rows, "状态"),
+        "type_dist": dist(new_rows, "沉淀类型"),
+        "added": added,        # 新进入队列的已审核卡片
+        "removed": removed,    # 离开队列的卡片（通常是已处理并反写为已发布）
+        "changed": changed,
+        "unchanged_count": common - len(changed),
+    }
+
+
+def sync_rows_payload() -> dict:
+    """返回当前快照全部卡片的精简字段，供前端"全部数据"表格浏览。"""
+    if not SYNC_INPUT.exists():
+        return {"success": False, "rows": [], "input": sync_input_meta()}
+    rows = _load_snapshot_rows(SYNC_INPUT)
+    items = []
+    for r in rows:
+        items.append({field: _cell_text(r.get(field)) for field in _REPORT_FIELDS})
+    return {"success": True, "rows": items, "input": sync_input_meta()}
+
+
+def sync_input_meta() -> dict:
+    """返回固定输入快照的元信息（是否存在、大小、修改时间、记录数），供前端展示。"""
+    meta = {"path": "exports/wecom_cards.json", "exists": SYNC_INPUT.exists()}
+    if not SYNC_INPUT.exists():
+        return meta
+    try:
+        stat = SYNC_INPUT.stat()
+        meta["size"] = stat.st_size
+        meta["modified"] = datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+        data = json.loads(SYNC_INPUT.read_text(encoding="utf-8"))
+        vals = data.get("values", [])
+        v = vals[0] if vals else {}
+        if isinstance(v, str):
+            v = json.loads(v)
+        meta["rows"] = len(v.get("rows", []))
+    except Exception as exc:  # noqa: BLE001 - 元信息展示失败不应阻断接口
+        meta["error"] = str(exc)
+    return meta
+
+
+def writeback_status(written: list) -> dict:
+    """把已成功写入 Wiki 的卡片在表格里反写状态为「已发布」。
+
+    written: [{"card": 卡片编号, "record_id": 表格行ID}, ...]
+    返回 {"attempted": n, "success": n, "failed": [{"card","record_id","error"}...]}
+    仅在有有效 record_id 时调用 CLI；分批 2000 条以内（CLI 上限）。
+    """
+    result = {"attempted": 0, "success": 0, "failed": [], "skipped_no_rid": 0}
+    valid = []
+    for item in written:
+        rid = str(item.get("record_id") or "").strip()
+        if not rid:
+            result["skipped_no_rid"] += 1
+            continue
+        valid.append({"card": str(item.get("card") or ""), "rid": rid})
+    if not valid:
+        return result
+
+    cli = shutil.which("wecom-cli") or WECOM_CLI
+    # 单选字段值格式：[{"id": "JdaNKJ", "text": "已发布"}]（与历史成功写入一致）
+    records = [{
+        "record_id": it["rid"],
+        "values": {"状态": [{"id": WRITEBACK_STATUS_ID, "text": WRITEBACK_STATUS_TEXT}]},
+    } for it in valid]
+    payload = {
+        "docid": WECOM_DOCID,
+        "sheet_title": WECOM_SHEET,
+        "key_type": "field_title",
+        "type": "update",
+        "records": records,
+    }
+    try:
+        # 直接以字符串传 --json（与历史成功的 `--json "$(cat ...)"` 等价）
+        cmd = [cli, "smartsheet", "records", "update", "--json",
+               json.dumps(payload, ensure_ascii=False)]
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", cwd=str(BASE_DIR), timeout=120,
+        )
+        raw = proc.stdout or ""
+        parsed = {}
+        try:
+            s = raw.index("{")
+            parsed = json.loads(raw[s:])
+        except Exception:  # noqa: BLE001
+            parsed = {}
+        errcode = parsed.get("errcode")
+        if proc.returncode == 0 and (errcode in (None, 0)):
+            result["attempted"] = len(valid)
+            result["success"] = len(valid)
+        else:
+            result["attempted"] = len(valid)
+            errmsg = parsed.get("errmsg") or (proc.stderr or "反写失败")[:200]
+            for it in valid:
+                result["failed"].append({"card": it["card"], "record_id": it["rid"],
+                                         "error": str(errmsg)})
+    except subprocess.TimeoutExpired:
+        result["attempted"] = len(valid)
+        for it in valid:
+            result["failed"].append({"card": it["card"], "record_id": it["rid"],
+                                     "error": "反写超时（>120秒）"})
+    except OSError as exc:
+        result["attempted"] = len(valid)
+        for it in valid:
+            result["failed"].append({"card": it["card"], "record_id": it["rid"],
+                                     "error": f"无法调用CLI：{exc}"})
+    return result
+
+
+def run_sync_script(apply: bool) -> dict:
+    """调用 sync_from_wecom.py；apply=False 为 dry-run（不传 --apply）。"""
+    meta = sync_input_meta()
+    if not SYNC_SCRIPT.exists():
+        return {"success": False, "stdout": "", "stderr": f"同步脚本不存在：{SYNC_SCRIPT}",
+                "apply": apply, "input": meta}
+    if not meta.get("exists"):
+        return {"success": False, "stdout": "", "stderr": f"输入快照不存在：{SYNC_INPUT}",
+                "apply": apply, "input": meta}
+
+    cmd = [PYTHON, str(SYNC_SCRIPT), "--input", str(SYNC_INPUT)]
+    report_path = SYNC_INPUT.parent / "sync_report.tmp.json"
+    if apply:
+        cmd.append("--apply")
+        cmd += ["--report", str(report_path)]
+    else:
+        _safe_unlink(report_path)  # 清理可能残留的旧报告
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
+            cwd=str(BASE_DIR), timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        return {"success": False, "stdout": "", "stderr": "同步脚本执行超时（>120 秒）",
+                "apply": apply, "input": meta}
+    except OSError as exc:
+        return {"success": False, "stdout": "", "stderr": f"无法启动同步脚本：{exc}",
+                "apply": apply, "input": meta}
+
+    response = {
+        "success": result.returncode == 0,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "apply": apply,
+        "input": meta,
+    }
+
+    # 正式写入成功后，把本次真正写入的卡片反写为「已发布」
+    if apply and result.returncode == 0:
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            written = report.get("written", [])
+        except Exception:  # noqa: BLE001
+            written = []
+        finally:
+            _safe_unlink(report_path)
+        wb = writeback_status(written)
+        response["writeback"] = wb
+        success = result.stdout + (
+            f"\n\n[反写表格状态] 尝试 {wb['attempted']} 条，成功 {wb['success']} 条，"
+            f"失败 {len(wb['failed'])} 条，跳过(无RECORD_ID) {wb['skipped_no_rid']} 条。"
+        )
+        if wb["failed"]:
+            success += "\n失败明细：" + "; ".join(
+                f"#{x['card']}({x['error'][:40]})" for x in wb["failed"][:5]
+            )
+        response["stdout"] = success
+
+    return response
+
+
+@app.get("/api/sync/status")
+def sync_status() -> dict:
+    """返回固定输入快照的元信息，供首页面板展示数据时间与记录数。"""
+    return sync_input_meta()
+
+
+@app.get("/api/sync/rows")
+def sync_rows() -> dict:
+    """返回当前快照全部卡片的精简字段，供首页"全部数据"表格浏览。"""
+    return sync_rows_payload()
+
+
+@app.post("/api/sync/preview")
+def sync_preview() -> dict:
+    """预览模式：运行同步脚本但不写任何文件（先看报告）。"""
+    return run_sync_script(apply=False)
+
+
+@app.post("/api/sync/apply")
+def sync_apply() -> dict:
+    """正式写入：把表格中已发布卡片同步进 docs/faqs/。"""
+    return run_sync_script(apply=True)
+
+
+@app.post("/api/sync/refresh")
+def sync_refresh() -> dict:
+    """刷新输入快照：用固定只读 SQL 从企微表格重新拉取全量卡片，校验后原子替换。
+
+    流程：
+      1. 检查 CLI 授权状态；未授权给出明确提示（不静默失败）。
+      2. 拉取到同目录临时文件（避免中途失败破坏现有快照）。
+      3. 校验 JSON 结构 / 记录数 / 必需字段，全部通过才原子替换。
+    失败时原快照保持不变。
+    """
+    # 1. 授权检查（每次重新解析 CLI 路径，避免启动时 PATH 未就绪）
+    cli = shutil.which("wecom-cli") or WECOM_CLI
+    try:
+        auth = subprocess.run(
+            [cli, "auth", "show", "--status"],
+            capture_output=True, text=True, encoding="utf-8",
+            errors="replace", cwd=str(BASE_DIR), timeout=30,
+        )
+        status = (auth.stdout or "").strip().lower()
+        if "unauthorized" in status or "未授权" in status:
+            return {"success": False,
+                    "stdout": "",
+                    "stderr": "企微 CLI 未授权。请在终端运行 wecom-cli auth init --noninteractive 后用企业微信扫码重新授权。",
+                    "input": sync_input_meta()}
+    except FileNotFoundError:
+        return {"success": False, "stdout": "",
+                "stderr": "未找到 wecom-cli，请确认已安装（npm install -g @wecom/cli）。",
+                "input": sync_input_meta()}
+    except subprocess.TimeoutExpired:
+        return {"success": False, "stdout": "", "stderr": "检查 CLI 授权超时（>30 秒）",
+                "input": sync_input_meta()}
+    except OSError as exc:
+        return {"success": False, "stdout": "", "stderr": f"无法检查 CLI 授权：{exc}",
+                "input": sync_input_meta()}
+
+    # 2. 拉取到临时文件；替换前先留一份旧快照用于生成变更报告
+    old_rows = _load_snapshot_rows(SYNC_INPUT) if SYNC_INPUT.exists() else []
+    SYNC_INPUT.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = SYNC_INPUT.with_suffix(".json.tmp")
+    cmd = [cli, "smartsheet", "records", "query",
+           "--docid", WECOM_DOCID, "--sql", REFRESH_SQL, "-o", str(tmp_path)]
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8",
+            errors="replace", cwd=str(BASE_DIR), timeout=120,
+        )
+    except subprocess.TimeoutExpired:
+        _safe_unlink(tmp_path)
+        return {"success": False, "stdout": "", "stderr": "拉取表格超时（>120 秒）",
+                "input": sync_input_meta()}
+    except OSError as exc:
+        _safe_unlink(tmp_path)
+        return {"success": False, "stdout": "", "stderr": f"无法启动 wecom-cli：{exc}",
+                "input": sync_input_meta()}
+
+    if result.returncode != 0:
+        _safe_unlink(tmp_path)
+        return {"success": False, "stdout": result.stdout,
+                "stderr": (result.stderr or "拉取失败") + "\n原快照未改动。",
+                "input": sync_input_meta()}
+
+    # 3. 校验后原子替换
+    try:
+        data = json.loads(tmp_path.read_text(encoding="utf-8"))
+        vals = data.get("values", [])
+        v = vals[0] if vals else {}
+        if isinstance(v, str):
+            v = json.loads(v)
+        rows = v.get("rows", [])
+        # 0 条是合法状态：已审核队列空了（都处理完并反写为已发布）
+        required = {"RECORD_ID", "卡片编号", "状态", "问题原话"}
+        missing = required - set(rows[0].keys()) if rows else set()
+        if missing:
+            raise ValueError(f"数据校验失败：记录数={len(rows)}，缺失字段={sorted(missing)}")
+    except Exception as exc:  # noqa: BLE001
+        _safe_unlink(tmp_path)
+        return {"success": False, "stdout": result.stdout,
+                "stderr": f"{exc}\n原快照未改动。", "input": sync_input_meta()}
+
+    try:
+        # Path.replace 在同盘内原子替换；Windows 上目标存在也可直接覆盖
+        tmp_path.replace(SYNC_INPUT)
+    except OSError as exc:
+        _safe_unlink(tmp_path)
+        return {"success": False, "stdout": "", "stderr": f"替换快照失败：{exc}",
+                "input": sync_input_meta()}
+
+    report = build_diff_report(old_rows, rows)
+    # 首次从"全量快照"切到"已审核队列快照"是一次性迁移：旧的全量卡片并非真的被处理离队，
+    # 把它们登记成"离队/变更"会误导。检测到此情形则清空逐条差异，只保留新快照概览。
+    migration = len(old_rows) > 50 and len(rows) <= 50
+    if migration:
+        report["added"] = []
+        report["removed"] = []
+        report["changed"] = []
+        report["unchanged_count"] = len(rows)
+        report["migration"] = True
+    return {
+        "success": True,
+        "stdout": (result.stdout or "").strip()
+                  + f"\n\n已刷新 {len(rows)} 条待处理卡片（只含状态=已审核）。"
+                  + "\n接下来可点「预览」查看变更，再点「正式写入」（写入后会自动反写为已发布）。",
+        "stderr": result.stderr,
+        "report": report,
+        "input": sync_input_meta(),
+    }
+
+
+def _safe_unlink(path: Path) -> None:
+    """尽力删除临时文件，忽略失败。"""
+    try:
+        if path.exists():
+            path.unlink()
+    except OSError:
+        pass
 
 
 @app.post("/api/validate-content")

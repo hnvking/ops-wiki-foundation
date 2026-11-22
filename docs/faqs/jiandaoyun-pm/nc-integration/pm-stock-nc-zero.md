@@ -14,7 +14,7 @@ tags:
   - NC同步
   - 入库
   - 常见问题
-content_hash: 3907b3ae8c632676
+content_hash: afa5725b4a9123ce
 generated_hash: 8f4185846100ad37
 ---
 # 系统显示有库存但出库提示 NC 库存为零

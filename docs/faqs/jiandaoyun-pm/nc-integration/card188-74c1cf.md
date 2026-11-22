@@ -11,7 +11,7 @@ owner: IT 运维组
 source_card_id: 188
 tags:
   - NC同步
-content_hash: 3907b3ae8c632676
+content_hash: 53a970e71140a205
 generated_hash: a738f73971a8e293
 ---
 # 传NC失败、物料档案、NC未启用

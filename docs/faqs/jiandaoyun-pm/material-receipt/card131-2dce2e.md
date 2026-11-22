@@ -12,7 +12,7 @@ source_card_id: 131
 tags:
   - 入库
   - 采购订单
-content_hash: 3907b3ae8c632676
+content_hash: 4421b25f62db90f6
 generated_hash: bfc79bed1cf54d65
 ---
 # 直入直出 入库单 订单编码 采购订单明细编号 表单视图
