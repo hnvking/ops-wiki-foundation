@@ -52,14 +52,16 @@ def build_51():
     groups = collect()
     lines = ["  - [5.1 简道云 PM 系统](docs/faqs/jiandaoyun-pm/README.md)"]
     idx = 1
+    seq = 1  # 全局连续展示序号，0001 起；稳定引用请用 source_card_id
     for pt in ORDER_ALL:
-        items = groups[pt]
+        items = sorted(groups[pt], key=lambda x: x[1])  # 按相对路径排序，保证重跑稳定
         if not items:
             continue
         lines.append("    - [5.1.%d %s（%d篇）](docs/faqs/README.md)" %
                      (idx, LABELS[pt], len(items)))
-        for j, (title, rel) in enumerate(items, 1):
-            lines.append("      - [5.1.%d.%d %s](%s)" % (idx, j, title, rel))
+        for (title, rel) in items:
+            lines.append("      - [%04d %s](%s)" % (seq, title, rel))
+            seq += 1
         idx += 1
     return "\n".join(lines), {k: len(v) for k, v in groups.items()}
 

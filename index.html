@@ -568,7 +568,7 @@
       function toggle(li, link, collapsed) {
         var collapsedNow = !li.classList.contains("wiki-tree-collapsed");
         li.classList.toggle("wiki-tree-collapsed", collapsedNow);
-        var key = link.getAttribute("href") || link.textContent;
+        var key = link.textContent.trim() || link.getAttribute("href");
         var index = collapsed.indexOf(key);
         if (collapsedNow && index < 0) collapsed.push(key);
         if (!collapsedNow && index >= 0) collapsed.splice(index, 1);
@@ -614,7 +614,7 @@
             });
           }
 
-          var key = link.getAttribute("href") || link.textContent;
+          var key = link.textContent.trim() || link.getAttribute("href");
           li.classList.toggle("wiki-tree-collapsed", collapsed.indexOf(key) >= 0);
         }
       }

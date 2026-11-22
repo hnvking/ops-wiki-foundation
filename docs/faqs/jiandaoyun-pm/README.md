@@ -1,21 +1,22 @@
 # 简道云 PM 系统 FAQ
 
-本目录收录 简道云 PM 系统 的运维问题。所有问题按「系统 → 表单」两级归档：
+本目录收录 简道云 PM 系统 的运维问题。
 
-1. 系统目录：`docs/faqs/jiandaoyun-pm/`；
-2. 表单目录：每个表单一个子目录，问题文件只能放进对应表单目录。
+- **物理归档**仍按「系统 → 表单」两级：每个表单一个子目录，问题文件放在对应表单目录下（路径与 `related_form` 校验依赖此结构，不变）。
+- **导航呈现**按「问题类型」分组，与企微表格「问题类型」字段同一口径；侧边栏 5.1 即按此分组展开。
 
-新增问题时在 frontmatter 填写 `related_system: 简道云 PM 系统` 与 `related_form: <表单标识>`，并保存到 `faqs/jiandaoyun-pm/<表单标识>/<问题>.md`。
+新增问题时在 frontmatter 填写 `related_system: 简道云 PM 系统`、`related_form: <表单标识>`（必填，指向物理目录）、`problem_type: <问题类型>`（可选，按下方 5 类填写），并保存到 `faqs/jiandaoyun-pm/<表单标识>/<问题>.md`。
 
-## 表单目录
+## 问题类型导航
 
-- [系统登录与权限](system-access/README.md) — 2 条 FAQ
-- [分包付款申请](subcontract-payment/README.md) — 2 条 FAQ
-- [材料采购订单](material-purchase/README.md) — 2 条 FAQ
-- [材料入库单](material-receipt/README.md) — 1 条 FAQ
-- [发票登记](invoice-registration/README.md) — 1 条 FAQ
-- [供应商扣罚单](supplier-penalty/README.md) — 1 条 FAQ
-- [物资库存](material-inventory/README.md) — 1 条 FAQ
-- [NC 接口同步](nc-integration/README.md) — 1 条 FAQ
+- [5.1.1 用户操作 FAQ（31 篇）](../README.md#用户操作-faq)
+- [5.1.2 配置与报表（40 篇）](../README.md#配置与报表)
+- [5.1.3 缺陷与数据问题（36 篇）](../README.md#缺陷与数据问题)
+- [5.1.4 审批流与权限（46 篇）](../README.md#审批流与权限)
+- [5.1.5 其他 / 综合（13 篇）](../README.md#其他--综合)（未标注 `problem_type` 的手写文档）
+
+「系统对接与集成」当前 0 篇，暂无卡片，待积累后单独成类（编号顺延）。
+
+篇数由 `python scripts/build_sidebar_by_type.py` 按 frontmatter 自动统计生成，不要手写。
 
 完整字段与模板见 [运维问题总览](../README.md)。
