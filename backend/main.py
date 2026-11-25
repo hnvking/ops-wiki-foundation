@@ -19,9 +19,9 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,6 +41,15 @@ VALIDATE_SCRIPT = BASE_DIR / "scripts" / "validate_docs.py"
 # 表格 → 项目 同步脚本与固定输入快照（输入含聊天原文证据层，放 exports/ 已被 gitignore）
 SYNC_SCRIPT = BASE_DIR / "scripts" / "sync_from_wecom.py"
 SYNC_INPUT = BASE_DIR / "exports" / "wecom_cards.json"
+NAV_SCRIPTS = [
+    BASE_DIR / "scripts" / "build_sidebar_by_type.py",
+    BASE_DIR / "scripts" / "build_faq_index.py",
+]
+REVIEW_SCRIPT = BASE_DIR / "scripts" / "feedback_review.py"
+REVIEW_REPORT = BASE_DIR / "exports" / "feedback_review.md"
+WEKNORA_EXPORT_SCRIPT = BASE_DIR / "scripts" / "export_for_weknora.py"
+WEKNORA_EXPORT = BASE_DIR / "exports" / "weknora_import.json"
+RAG_EXPORT = BASE_DIR / "exports" / "docs_export.json"
 # 刷新按钮：企微 CLI 可执行文件路径。启动时解析绝对路径——Windows 上 wecom-cli 是
 # .CMD 脚本，subprocess 只用裸命令名会 FileNotFoundError，必须用 which() 解析出的全路径。
 WECOM_CLI = shutil.which("wecom-cli") or "wecom-cli"
@@ -53,7 +62,9 @@ REFRESH_SQL = (
     "`业务规则与判断逻辑`, `标准操作步骤`, `注意事项/风险提示`, `根因分类`, "
     "`关键词/摘要`, `标签`, `适用系统/流程`, `影响范围说明`, `影响范围分类`, "
     "`涉及表单名称`, `模块`, `问题类型`, "
-    "DATE_FORMAT(`处理日期`, \"%Y-%m-%d\") AS `处理日期`, `聊天原文` "
+    "DATE_FORMAT(`处理日期`, \"%Y-%m-%d\") AS `处理日期`, `聊天原文`, "
+    "`复用次数`, `满意度评分`, "
+    "DATE_FORMAT(`最后复核日期`, \"%Y-%m-%d\") AS `最后复核日期` "
     f"FROM `{WECOM_SHEET}` WHERE `状态` = '已审核' LIMIT 500"
 )
 # 反写：写入成功后把对应表格行状态改成「已发布」（单选选项 ID JdaNKJ）
@@ -382,6 +393,13 @@ class FilePathContent(BaseModel):
     content: str
 
 
+class FeedbackPayload(BaseModel):
+    """FAQ 反馈写回请求体。"""
+
+    source_card_id: str
+    rating: Optional[int] = None
+
+
 # ---------------------------------------------------------------------------
 # API 端点
 # ---------------------------------------------------------------------------
@@ -676,6 +694,72 @@ def sync_input_meta() -> dict:
     return meta
 
 
+def iso_date(value) -> str:
+    """企微日期字段返回 Excel 序列号，转换成 YYYY-MM-DD 文本。"""
+    if value in (None, ""):
+        return ""
+    if isinstance(value, (int, float)) and 20000 < float(value) < 70000:
+        return (datetime(1899, 12, 30) + timedelta(days=int(value))).strftime("%Y-%m-%d")
+    return str(value)
+
+
+def _cli_json(cmd: list, timeout: int = 60) -> dict:
+    """运行 wecom-cli 并解析其 JSON 输出（CLI 会在 JSON 前打印安全提示）。"""
+    proc = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8",
+        errors="replace", cwd=str(BASE_DIR), timeout=timeout,
+    )
+    raw = proc.stdout or ""
+    start = raw.find("{")
+    if start < 0:
+        raise ValueError((proc.stderr or raw or "CLI 未返回 JSON")[:300])
+    data = json.loads(raw[start:])
+    if data.get("errcode") not in (None, 0):
+        raise ValueError(str(data.get("errmsg") or data.get("errcode")))
+    return data
+
+
+def find_card_record(source_card_id: str) -> dict:
+    """按卡片编号从企微表格定位 RECORD_ID 及当前反馈字段值。"""
+    card = str(source_card_id or "").strip().replace("'", "''")
+    if not card:
+        raise ValueError("source_card_id 不能为空")
+    cli = shutil.which("wecom-cli") or WECOM_CLI
+    sql = (
+        "SELECT `RECORD_ID`, `卡片编号`, `复用次数`, `满意度评分`, `最后复核日期` "
+        f"FROM `{WECOM_SHEET}` WHERE `卡片编号` = '{card}' LIMIT 1"
+    )
+    data = _cli_json([
+        cli, "smartsheet", "records", "query",
+        "--docid", WECOM_DOCID, "--sql", sql,
+    ])
+    values = data.get("values") or []
+    block = values[0] if values else {}
+    if isinstance(block, str):
+        block = json.loads(block)
+    rows = block.get("rows") or []
+    if not rows:
+        raise ValueError(f"表格中找不到卡片编号 {source_card_id}")
+    return rows[0]
+
+
+def update_card_fields(record_id: str, values: dict) -> dict:
+    """按 RECORD_ID 更新企微表格字段（字段名 → 值）。"""
+    cli = shutil.which("wecom-cli") or WECOM_CLI
+    payload = {
+        "docid": WECOM_DOCID,
+        "sheet_title": WECOM_SHEET,
+        "key_type": "field_title",
+        "type": "update",
+        "records": [{"record_id": record_id, "values": values}],
+    }
+    _cli_json([
+        cli, "smartsheet", "records", "update",
+        "--json", json.dumps(payload, ensure_ascii=False),
+    ], timeout=120)
+    return {"success": True, "record_id": record_id, "values": values}
+
+
 def writeback_status(written: list) -> dict:
     """把已成功写入 Wiki 的卡片在表格里反写状态为「已发布」。
 
@@ -745,6 +829,33 @@ def writeback_status(written: list) -> dict:
     return result
 
 
+def rebuild_navigation() -> dict:
+    """正式写入后重建侧边栏和 FAQ 索引，保证左侧树立即显示新文档。"""
+    details = []
+    ok = True
+    for script in NAV_SCRIPTS:
+        if not script.exists():
+            ok = False
+            details.append(f"缺少脚本：{script.name}")
+            continue
+        try:
+            result = subprocess.run(
+                [PYTHON, str(script)], capture_output=True, text=True,
+                encoding="utf-8", errors="replace",
+                cwd=str(BASE_DIR), timeout=60,
+            )
+        except Exception as exc:  # noqa: BLE001
+            ok = False
+            details.append(f"{script.name} 执行失败：{exc}")
+            continue
+        if result.returncode != 0:
+            ok = False
+            details.append(f"{script.name} 退出码 {result.returncode}：{(result.stderr or result.stdout)[:200]}")
+        else:
+            details.append((result.stdout or f"{script.name} 完成").strip())
+    return {"success": ok, "details": details}
+
+
 def run_sync_script(apply: bool) -> dict:
     """调用 sync_from_wecom.py；apply=False 为 dry-run（不传 --apply）。"""
     meta = sync_input_meta()
@@ -802,6 +913,11 @@ def run_sync_script(apply: bool) -> dict:
             success += "\n失败明细：" + "; ".join(
                 f"#{x['card']}({x['error'][:40]})" for x in wb["failed"][:5]
             )
+        # 重建左侧树与索引：否则正式写入成功后新文档不会出现在导航里。
+        nav = rebuild_navigation()
+        response["navigation_rebuild"] = nav
+        success += ("\n\n[重建导航] " + ("成功" if nav["success"] else "部分失败")
+                    + "\n" + "\n".join(nav["details"]))
         response["stdout"] = success
 
     return response
@@ -946,6 +1062,151 @@ def _safe_unlink(path: Path) -> None:
             path.unlink()
     except OSError:
         pass
+
+
+@app.get("/api/feedback/status")
+def feedback_status(source_card_id: str) -> dict:
+    """查询某张卡片的反馈数据（复用次数 / 满意度 / 最后复核日期）。"""
+    try:
+        row = find_card_record(source_card_id)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=404, detail=str(exc))
+    return {
+        "success": True,
+        "source_card_id": source_card_id,
+        "reuse": row.get("复用次数") or 0,
+        "rating": row.get("满意度评分"),
+        "last_reviewed": iso_date(row.get("最后复核日期")),
+    }
+
+
+@app.post("/api/feedback/reuse")
+def feedback_reuse(payload: FeedbackPayload) -> dict:
+    """记录一次复用：表格里对应卡片的「复用次数」+1。"""
+    try:
+        row = find_card_record(payload.source_card_id)
+        current = int(row.get("复用次数") or 0)
+        result = update_card_fields(row["RECORD_ID"], {"复用次数": current + 1})
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"success": True, "source_card_id": payload.source_card_id,
+            "reuse": current + 1, "record_id": result["record_id"]}
+
+
+@app.post("/api/feedback/rating")
+def feedback_rating(payload: FeedbackPayload) -> dict:
+    """提交满意度评分（1-5），并更新「最后复核日期」。"""
+    if payload.rating is None or not 1 <= payload.rating <= 5:
+        raise HTTPException(status_code=400, detail="满意度评分必须是 1-5 的整数")
+    try:
+        row = find_card_record(payload.source_card_id)
+        result = update_card_fields(row["RECORD_ID"], {
+            "满意度评分": payload.rating,
+            "最后复核日期": datetime.now().strftime("%Y-%m-%d"),
+        })
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"success": True, "source_card_id": payload.source_card_id,
+            "rating": payload.rating, "record_id": result["record_id"]}
+
+
+@app.post("/api/feedback/review")
+def feedback_review() -> dict:
+    """运行复核提醒脚本，返回报告路径与内容。"""
+    if not REVIEW_SCRIPT.exists():
+        raise HTTPException(status_code=404, detail="复核脚本不存在")
+    try:
+        result = subprocess.run(
+            [PYTHON, str(REVIEW_SCRIPT)], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", cwd=str(BASE_DIR), timeout=120,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"无法运行复核脚本：{exc}")
+    response = {
+        "success": result.returncode == 0,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "report_path": "exports/feedback_review.md",
+    }
+    if response["success"] and REVIEW_REPORT.exists():
+        response["report"] = REVIEW_REPORT.read_text(encoding="utf-8")
+    return response
+
+
+@app.post("/api/export/weknora")
+def export_weknora() -> dict:
+    """生成 WeKnora 导入 JSON，返回文件元信息。"""
+    if not WEKNORA_EXPORT_SCRIPT.exists():
+        raise HTTPException(status_code=404, detail="WeKnora 导出脚本不存在")
+    try:
+        result = subprocess.run(
+            [PYTHON, str(WEKNORA_EXPORT_SCRIPT)], capture_output=True, text=True,
+            encoding="utf-8", errors="replace", cwd=str(BASE_DIR), timeout=120,
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"无法运行导出脚本：{exc}")
+    if result.returncode != 0:
+        raise HTTPException(status_code=500, detail=(result.stderr or result.stdout)[:500])
+    meta = {"path": "exports/weknora_import.json", "exists": WEKNORA_EXPORT.exists()}
+    if WEKNORA_EXPORT.exists():
+        meta["size"] = WEKNORA_EXPORT.stat().st_size
+        data = json.loads(WEKNORA_EXPORT.read_text(encoding="utf-8"))
+        meta["total_documents"] = data.get("total_documents", 0)
+    return {"success": True, "stdout": result.stdout, "meta": meta}
+
+
+@app.get("/api/ask/search")
+def ask_search(q: str = "", limit: int = 8) -> dict:
+    """本地检索接口：返回带 source_card_id 的 FAQ 片段，供企微 Agent 溯源。"""
+    q = (q or "").strip()
+    if not q:
+        raise HTTPException(status_code=400, detail="查询词不能为空")
+    if not RAG_EXPORT.exists():
+        raise HTTPException(status_code=404, detail="未找到导出索引，请先运行 export_for_rag.py")
+    data = json.loads(RAG_EXPORT.read_text(encoding="utf-8"))
+    docs = data.get("documents") or []
+    terms = [t for t in re.split(r"[\s,，、]+", q.lower()) if t]
+    scored = []
+    for doc in docs:
+        title = str(doc.get("title") or "").lower()
+        body = str(doc.get("body") or "").lower()
+        score = sum(title.count(t) * 3 + body.count(t) for t in terms)
+        if score:
+            scored.append((score, doc))
+    scored.sort(key=lambda x: -x[0])
+    results = []
+    for score, doc in scored[:max(1, min(limit, 50))]:
+        fm = doc.get("frontmatter") or {}
+        body = str(doc.get("body") or "")
+        excerpt = body[:240].replace("\n", " ")
+        results.append({
+            "source_card_id": fm.get("source_card_id", ""),
+            "title": doc.get("title", ""),
+            "source_path": doc.get("source_path", ""),
+            "problem_type": fm.get("problem_type", ""),
+            "score": score,
+            "excerpt": excerpt,
+        })
+    return {"query": q, "total_matches": len(scored), "results": results}
+
+
+@app.get("/api/ask/faq/{source_card_id}")
+def ask_faq(source_card_id: str) -> dict:
+    """按卡片编号取回完整 FAQ，供 MCP 工具与 Agent 引用。"""
+    if not RAG_EXPORT.exists():
+        raise HTTPException(status_code=404, detail="未找到导出索引，请先运行 export_for_rag.py")
+    data = json.loads(RAG_EXPORT.read_text(encoding="utf-8"))
+    for doc in data.get("documents") or []:
+        fm = doc.get("frontmatter") or {}
+        if str(fm.get("source_card_id") or "") == str(source_card_id):
+            return {
+                "source_card_id": source_card_id,
+                "title": doc.get("title", ""),
+                "source_path": doc.get("source_path", ""),
+                "frontmatter": fm,
+                "body": doc.get("body", ""),
+            }
+    raise HTTPException(status_code=404, detail=f"找不到卡片编号 {source_card_id}")
 
 
 @app.post("/api/validate-content")

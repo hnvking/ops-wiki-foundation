@@ -29,3 +29,7 @@ secrets/
 
 # WorkBuddy 本地工作记录（项目数据，不随仓库分发）
 .workbuddy/
+
+# 本地 WeKnora 部署与临时 FAQ 备份，不随仓库分发
+weknora/
+backup/

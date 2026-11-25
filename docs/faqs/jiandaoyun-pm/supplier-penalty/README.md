@@ -10,6 +10,6 @@
 
 ## FAQ 索引
 
-- [供应商扣罚单正负数逻辑](supplier-penalty-sign.md)
+当前 0 篇。正式写入后重跑 `python scripts/build_faq_index.py` 自动生成索引。
 
 返回 [简道云 PM 系统 FAQ](../README.md)。

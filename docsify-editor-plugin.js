@@ -54,6 +54,8 @@
   var routeInfo = { mode: "home" }; // mode: home | index | doc
   // 编辑/新增的目标文件（相对 docs/），如 systems/xxx.md
   var currentFile = null;
+  // 当前 FAQ 的溯源卡片编号（来自 frontmatter.source_card_id）
+  var currentCardId = null;
   // 当前分类目录（相对 docs/），如 systems（仅 index 模式使用）
   var currentCategory = null;
 
@@ -73,7 +75,12 @@
 
   /** 分析路由，得出页面类型与文档路径。 */
   function analyzeRoute(routeFile) {
-    var raw = routeFile ? String(routeFile).replace(/\\/g, "/").replace(/^\/+/, "") : "";
+    var raw = "";
+    if (routeFile) {
+      // Docsify 对中文路径做 URL 编码，必须先解码再拆路径。
+      try { raw = decodeURIComponent(String(routeFile)); } catch (e) { raw = String(routeFile); }
+      raw = raw.replace(/\\/g, "/").replace(/^\/+/, "");
+    }
     if (!raw) return { mode: "home" };
     // 首页（homepage 指向 docsify/README.md，或根 README）
     if (raw === "docsify/README.md" || raw === "README.md") return { mode: "home" };
@@ -945,6 +952,42 @@
     return btn;
   }
 
+  function ensureFeedbackButton(id, text, className) {
+    var btn = document.getElementById(id);
+    if (!btn || !btn.isConnected) {
+      btn = ensureButton(id, text, className);
+      if (btn) {
+        btn.addEventListener("click", async function () {
+          if (!currentCardId) { toast("该页面没有 source_card_id，无法反馈", "warn"); return; }
+          var isReuse = id === "wiki-reuse-btn";
+          var body = { source_card_id: currentCardId };
+          if (!isReuse) {
+            body.rating = window.prompt("满意度评分（1-5分）：", "5");
+            if (body.rating === null || body.rating === "") return;
+          }
+          try {
+            await apiFetch(isReuse ? "/api/feedback/reuse" : "/api/feedback/rating", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+            toast(isReuse ? "已记录一次复用 ✅" : "评分已提交 ✅", "success");
+          } catch (err) {
+            toast("反馈失败：" + err.message, "error");
+          }
+        });
+      }
+    }
+    return btn;
+  }
+
+  function hideFeedbackButtons() {
+    ["wiki-reuse-btn", "wiki-rating-btn"].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.style.display = "none";
+    });
+  }
+
   function injectButtons() {
     var editBtn = document.getElementById("wiki-edit-btn");
     var delBtn = document.getElementById("wiki-del-btn");
@@ -970,7 +1013,31 @@
       }
       if (editBtn) editBtn.style.display = "inline-block";
       if (delBtn) delBtn.style.display = "inline-block";
-      if (newBtn) newBtn.style.display = "none";
+
+      // README 也是归档入口：同时保留编辑/删除并增加「新增页面」
+      if (currentFile && /README\.md$/i.test(currentFile)) {
+        if (!newBtn || !newBtn.isConnected) {
+          newBtn = ensureButton("wiki-new-btn", "➕ 新增页面", "wiki-new-btn");
+          if (newBtn) {
+            newBtn.addEventListener("click", function () {
+              if (currentCategory) openModal("create", null, currentCategory);
+            });
+          }
+        }
+        if (newBtn) newBtn.style.display = "inline-block";
+      } else if (newBtn) {
+        newBtn.style.display = "none";
+      }
+
+      // 有溯源编号的 FAQ 显示反馈按钮
+      var reuseBtn = document.getElementById("wiki-reuse-btn");
+      var ratingBtn = document.getElementById("wiki-rating-btn");
+      if (currentCardId) {
+        reuseBtn = ensureFeedbackButton("wiki-reuse-btn", "👍 复用+1", "wiki-feedback-btn");
+        ratingBtn = ensureFeedbackButton("wiki-rating-btn", "⭐ 评分", "wiki-feedback-btn wiki-rating-btn");
+      }
+      if (reuseBtn) reuseBtn.style.display = currentCardId ? "inline-block" : "none";
+      if (ratingBtn) ratingBtn.style.display = currentCardId ? "inline-block" : "none";
     } else if (routeInfo.mode === "index") {
       // 分类索引页：显示新增按钮
       if (!newBtn || !newBtn.isConnected) {
@@ -984,12 +1051,30 @@
       if (newBtn) newBtn.style.display = "inline-block";
       if (editBtn) editBtn.style.display = "none";
       if (delBtn) delBtn.style.display = "none";
+      hideFeedbackButtons();
     } else {
       // 首页 / docsify 下其它只读页面：不显示任何按钮
       if (editBtn) editBtn.style.display = "none";
       if (delBtn) delBtn.style.display = "none";
       if (newBtn) newBtn.style.display = "none";
+      hideFeedbackButtons();
     }
+  }
+
+  /** 读取当前 FAQ 的 source_card_id，用于反馈按钮。 */
+  async function loadCardId(file) {
+    currentCardId = null;
+    if (!file) return;
+    try {
+      var data = await apiFetch("/api/files/" + encodeURIComponent(file));
+      var parsed = parseFrontmatter(data.content || "");
+      if (parsed.fm && parsed.fm.source_card_id) {
+        currentCardId = String(parsed.fm.source_card_id);
+      }
+    } catch (e) {
+      currentCardId = null;
+    }
+    injectButtons();
   }
 
   // -------------------------------------------------------------------------
@@ -1002,9 +1087,11 @@
       function updateRoute() {
         var info = analyzeRoute(vm.route && vm.route.file);
         routeInfo = info;
+        currentCardId = null;
         if (info.mode === "doc") {
           currentFile = info.file;
           currentCategory = info.category;
+          loadCardId(info.file);
         } else if (info.mode === "index") {
           currentFile = null;
           currentCategory = info.category;

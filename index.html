@@ -14,7 +14,8 @@
     /* ============ 编辑/删除/新增按钮（右下角浮动） ============ */
     .wiki-edit-btn,
     .wiki-del-btn,
-    .wiki-new-btn {
+    .wiki-new-btn,
+    .wiki-feedback-btn {
       position: fixed;
       right: 24px;
       bottom: 24px;
@@ -30,8 +31,11 @@
     }
     .wiki-edit-btn { background: #2c3e50; }
     .wiki-edit-btn:hover { background: #34495e; transform: translateY(-2px); }
-    .wiki-new-btn { background: #28a745; }
+    .wiki-new-btn { background: #28a745; right: 285px; }
     .wiki-new-btn:hover { background: #218838; transform: translateY(-2px); }
+    .wiki-feedback-btn { background: #6f42c1; right: 405px; }
+    .wiki-feedback-btn.wiki-rating-btn { background: #fd7e14; right: 525px; }
+    .wiki-feedback-btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
     .wiki-del-btn {
       background: #dc3545;
       right: 165px; /* 与编辑按钮拉开明显间距 */
@@ -628,7 +632,7 @@
   <script src="assets/easymde/easymde.min.js"></script>
   <!-- 在线编辑/校验插件：需在 docsify 之后加载，通过 $docsify.plugins 注册。
        追加版本参数防止浏览器缓存旧文件，改插件后需同步更新 v= 值。 -->
-  <script src="docsify-editor-plugin.js?v=20261118k"></script>
+  <script src="docsify-editor-plugin.js?v=20261123a"></script>
   <!-- 首页同步控制台：面板为静态 HTML（在 #app 外），此脚本只负责绑定事件 -->
   <script>
     (function () {

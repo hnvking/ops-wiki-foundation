@@ -402,7 +402,7 @@ python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 1. **阶段一（已完成）**：把表格内容做对——脱敏、字段映射、目录归类、校验通过、可导出；实现增量同步脚本并试跑验证冲突保护。
 2. **阶段一·五（已完成）**：引入证据层——表格新增「聊天原文」长文本字段，大圆每日按单问题切分逐字入库（含图片占位符）；同步脚本 `content_hash` 改为原文优先，存量基线不受影响，原文修订可独立触发重新加工。
-3. **阶段二**：补反馈闭环——利用「复用次数/满意度」字段做定期复核提醒；导航扁平化 + 索引页升级。
-4. **阶段三**：接 WeKnora——导入导出 JSON，暴露 MCP/API 给企微 Agent，实现员工问答 + 溯源 + 回流。
+3. **阶段二（基础设施已完成）**：反馈闭环已落地——FAQ 页右下角「👍 复用+1」「⭐ 评分」写回企微表格的「复用次数」「满意度评分」「最后复核日期」；`scripts/feedback_review.py` 生成定期复核提醒（`POST /api/feedback/review`）；侧边栏按 5 类问题类型扁平分组，`scripts/build_faq_index.py` 生成全局 0001 连续索引页。
+4. **阶段三（服务已部署，外部配置由使用者完成）**：`scripts/export_for_weknora.py` 生成带 `source_card_id` 的导入 JSON 和可直接上传的 `exports/weknora_upload/`；`mcp_server.py` 已在 `http://127.0.0.1:8001/mcp` 提供 5 个 MCP 工具（FAQ 检索、原文读取、复用计数、满意度评分、复核报告）。**直接用 WeKnora 自带问答 Agent + 企微 IM 渠道生成答案**，本项目通过 MCP 补溯源和反馈写回。接入步骤见 [WeKnora 问答 Agent 与 MCP 工具接入](docs/integrations/weknora-mcp-agent.md)。使用者只需在 WeKnora 里填 API Key、创建企微渠道并把 MCP 地址填进「工具箱 → MCP服务」。
 
-阶段性成果均已通过 `validate_docs.py`（0 错误）与 `export_for_rag.py`（170 篇）验证。
+阶段性成果均已通过 `validate_docs.py`（0 错误）与 `export_for_rag.py`（172 篇）验证。
